@@ -1,0 +1,134 @@
+version: "3.9"
+
+networks:
+  smartcity-net:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  rabbitmq-data:
+  grafana-data:
+
+services:
+  # ── INFRA ──────────────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpass
+      - MYSQL_DATABASE=smartcity
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - smartcity-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    ports:
+      - "15672:15672"
+      - "5672:5672" # Opsional: mengekspos port broker jika layanan luar butuh connect langsung
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - smartcity-net
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./iot/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    networks:
+      - smartcity-net
+
+  # ── SERVICES ───────────────────────────────────────────────────────────────
+  api-gateway:
+    build: ./express-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+      - CITIZEN_SERVICE_URL=http://citizen-service:8000
+      - TRAFFIC_SERVICE_URL=http://traffic-service:8001
+      - ENV_SERVICE_URL=http://env-service:8002
+      - PYTHON_ML_URL=http://python-ml:5000
+    depends_on:
+      - rabbitmq
+      - mysql
+    networks:
+      - smartcity-net
+
+  citizen-service:
+    build: ./php-citizen
+    environment:
+      - DB_HOST=mysql
+      - DB_NAME=smartcity
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - smartcity-net
+
+  traffic-service:
+    build: ./php-traffic
+    environment:
+      - DB_HOST=mysql
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - smartcity-net
+
+  env-service:
+    build: ./php-environment
+    environment:
+      - DB_HOST=mysql
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - smartcity-net
+
+  python-ml:
+    build: ./python-ml-service
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - rabbitmq
+    networks:
+      - smartcity-net
+
+  node-red:
+    image: nodered/node-red:3.1
+    ports:
+      - "1880:1880"
+    volumes:
+      - ./iot/node-red-data:/data
+    networks:
+      - smartcity-net
+
+  # ── MONITORING ─────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - smartcity-net
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - smartcity-net
