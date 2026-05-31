@@ -55,10 +55,10 @@ services:
       - "3000:3000"
     environment:
       - JWT_SECRET=${JWT_SECRET}
-      - CITIZEN_SERVICE_URL=http://citizen-service:8000
-      - TRAFFIC_SERVICE_URL=http://traffic-service:8001
-      - ENV_SERVICE_URL=http://env-service:8002
-      - PYTHON_ML_URL=http://python-ml:5000
+      - CITIZEN_URL=http://citizen-service:8000
+      - TRAFFIC_URL=http://traffic-service:8001
+      - ENV_URL=http://env-service:8002
+      - ML_URL=http://python-ml:5000
     depends_on:
       - rabbitmq
       - mysql
@@ -73,7 +73,7 @@ services:
       - RABBITMQ_HOST=rabbitmq
     depends_on:
       mysql:
-        condition: service_healthy
+        condition: healthy
     networks:
       - smartcity-net
 
@@ -84,7 +84,7 @@ services:
       - RABBITMQ_HOST=rabbitmq
     depends_on:
       mysql:
-        condition: service_healthy
+        condition: healthy
     networks:
       - smartcity-net
 
@@ -95,7 +95,7 @@ services:
       - RABBITMQ_HOST=rabbitmq
     depends_on:
       mysql:
-        condition: service_healthy
+        condition: healthy
     networks:
       - smartcity-net
 
