@@ -42,6 +42,9 @@ services:
       - "1883:1883"
     volumes:
       - ./iot/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./iot/passwd:/mosquitto/config/passwd
+      - ./iot/data:/mosquitto/data
+      - ./iot/log:/mosquitto/log
     networks:
       - smartcity-net
 
@@ -113,7 +116,22 @@ services:
       - ./iot/node-red-data:/data
     networks:
       - smartcity-net
-
+  iot-simulator:
+    build:
+      context: ./iot
+      dockerfile: Dockerfile
+    container_name: smartcity-iot-simulator
+    restart: unless-stopped
+    environment:
+      MQTT_BROKER: mosquitto
+      MQTT_PORT: 1883
+      MQTT_USERNAME: iot_device
+      MQTT_PASSWORD: iot_secret
+      MQTT_INTERVAL: 30
+    depends_on:
+      - mosquitto
+    networks:
+      - smartcity-net
   # ── MONITORING ─────────────────────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:v2.48.0
@@ -132,3 +150,4 @@ services:
       - grafana-data:/var/lib/grafana
     networks:
       - smartcity-net
+  
