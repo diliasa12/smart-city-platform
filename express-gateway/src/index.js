@@ -55,7 +55,7 @@ app.use("/metrics", metricsRouter);
 app.use(
   "/oauth",
   createProxyMiddleware({
-    target: OAUTH_SERVER_URL,
+    target: OAUTH_URL,
     changeOrigin: true,
     on: { error: (err, req, res) => upstreamError(res, "oauth-server", err) },
   }),
@@ -118,7 +118,7 @@ app.use(
 app.use(
   ["/predict", "/detect", "/model"],
   createProxyMiddleware({
-    target: PYTHON_ML_URL,
+    target: ML_URL,
     changeOrigin: true,
     on: { error: (err, req, res) => upstreamError(res, "python-ml", err) },
   }),
@@ -162,8 +162,8 @@ const server = app.listen(PORT, () => {
   console.log(`  Citizen  → ${CITIZEN_URL}`);
   console.log(`  Traffic  → ${TRAFFIC_URL}`);
   console.log(`  Env      → ${ENV_URL}`);
-  console.log(`  ML       → ${PYTHON_ML_URL}`);
-  console.log(`  OAuth    → ${OAUTH_SERVER_URL}`);
+  console.log(`  ML       → ${ML_URL}`);
+  console.log(`  OAuth    → ${OAUTH_URL}`);
   console.log("══════════════════════════════════════════════\n");
 });
 

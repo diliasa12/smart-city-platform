@@ -16,7 +16,7 @@ const UPSTREAMS = [
   { name: "citizen-service", url: `${CITIZEN_URL}/health` },
   { name: "traffic-service", url: `${TRAFFIC_URL}/health` },
   { name: "env-service", url: `${ENV_URL}/health` },
-  { name: "python-ml", url: `${PYTHON_ML_URL}/health` },
+  { name: "python-ml", url: `${ML_URL}/health` },
   { name: "oauth-server", url: `${OAUTH_URL}/health` },
 ];
 
