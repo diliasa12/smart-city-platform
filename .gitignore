@@ -44,3 +44,11 @@ venv/
 
 # ── PHP ──────────────────────────────────────────────────────
 composer.lock
+
+# node-red-data
+.config.runtime.json
+.config.runtime.json.backup
+.config.nodes.json
+.npm
+lib
+context

@@ -73,7 +73,7 @@ services:
       - RABBITMQ_HOST=rabbitmq
     depends_on:
       mysql:
-        condition: healthy
+        condition: service_healthy
     networks:
       - smartcity-net
 
@@ -84,7 +84,7 @@ services:
       - RABBITMQ_HOST=rabbitmq
     depends_on:
       mysql:
-        condition: healthy
+        condition: service_healthy
     networks:
       - smartcity-net
 
@@ -95,27 +95,38 @@ services:
       - RABBITMQ_HOST=rabbitmq
     depends_on:
       mysql:
-        condition: healthy
+        condition: service_healthy
     networks:
       - smartcity-net
 
-  python-ml:
-    build: ./python-ml-service
-    environment:
-      - RABBITMQ_HOST=rabbitmq
-    depends_on:
-      - rabbitmq
-    networks:
-      - smartcity-net
+  # python-ml:
+  #   build: ./python-ml-service
+  #   environment:
+  #     - RABBITMQ_HOST=rabbitmq
+  #   depends_on:
+  #     - rabbitmq
+  #   networks:
+  #     - smartcity-net
 
   node-red:
     image: nodered/node-red:3.1
+    container_name: smartcity-nodered
+    restart: unless-stopped
     ports:
       - "1880:1880"
     volumes:
       - ./iot/node-red-data:/data
+    environment:
+      GATEWAY_URL: http://api-gateway:3000
+      IOT_TOKEN: ${JWT_SECRET}
+      MQTT_BROKER: mosquitto
+      MQTT_PORT: 1883
+    depends_on:
+      - mosquitto
+      - api-gateway
     networks:
       - smartcity-net
+
   iot-simulator:
     build:
       context: ./iot
