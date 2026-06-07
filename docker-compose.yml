@@ -99,14 +99,14 @@ services:
     networks:
       - smartcity-net
 
-  # python-ml:
-  #   build: ./python-ml-service
-  #   environment:
-  #     - RABBITMQ_HOST=rabbitmq
-  #   depends_on:
-  #     - rabbitmq
-  #   networks:
-  #     - smartcity-net
+  python-ml:
+    build: ./python-ml-service
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - rabbitmq
+    networks:
+      - smartcity-net
 
   node-red:
     image: nodered/node-red:3.1
