@@ -1,13 +1,54 @@
 const express = require("express");
-const router = require("./routes/oauthRoute");
+const cors = require("cors");
+const helmet = require("helmet");
+const morgan = require("morgan");
+const oauthRoutes = require("./routes/oauthRoutes");
 const errorHandler = require("./middleware/errorHandler");
+const { PORT = 3002, NODE_ENV = "development" } = process.env;
+
 const app = express();
-const port = 3002;
-app.get("/", (req, res) => {
-  return res.status(200).json({ success: true, message: "hello folks!!!" });
+
+// ── Middleware ────────────────────────────────────────────────
+app.use(helmet());
+app.use(cors());
+app.use(morgan(NODE_ENV === "production" ? "combined" : "dev"));
+
+// OAuth token endpoint butuh application/x-www-form-urlencoded
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
+
+// ── Routes ────────────────────────────────────────────────────
+app.use("/oauth", oauthRoutes);
+app.use("/health", (req, res) => res.redirect("/oauth/health"));
+
+// ── 404 ───────────────────────────────────────────────────────
+app.use((req, res) => {
+  res.status(404).json({
+    status: "error",
+    code: 404,
+    data: null,
+    message: `Endpoint '${req.method} ${req.originalUrl}' tidak ditemukan`,
+    timestamp: new Date().toISOString(),
+    service: "oauth-server",
+  });
 });
-app.use("/auth", router);
+
+// ── Error handler ─────────────────────────────────────────────
 app.use(errorHandler);
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+
+// ── Start ─────────────────────────────────────────────────────
+const server = app.listen(PORT, () => {
+  console.log("\n══════════════════════════════════════════════");
+  console.log(`  Smart City OAuth Server  |  Port ${PORT}  (${NODE_ENV})`);
+  console.log("  Endpoints:");
+  console.log("    POST /oauth/token");
+  console.log("    POST /oauth/introspect");
+  console.log("    POST /oauth/revoke");
+  console.log("    GET  /health");
+  console.log("══════════════════════════════════════════════\n");
 });
+
+process.on("SIGTERM", () => server.close(() => process.exit(0)));
+process.on("SIGINT", () => server.close(() => process.exit(0)));
+
+export default app;
