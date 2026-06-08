@@ -9,11 +9,10 @@
  *   - refresh_token      : perpanjang sesi tanpa login ulang
  */
 
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { v4 as uuidv4 } from "uuid";
-import db from "../config/database.js";
-
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const { v4 } = require("uuid");
+const db = require("../config/database");
 const {
   JWT_SECRET = "smartcity-super-secret-change-in-production",
   ACCESS_TOKEN_TTL = "3600", // detik
@@ -27,7 +26,7 @@ const {
 /**
  * getClient — dipanggil pertama kali untuk validasi client_id + client_secret
  */
-export async function getClient(clientId, clientSecret) {
+async function getClient(clientId, clientSecret) {
   const [rows] = await db.execute(
     `SELECT * FROM shared_oauth_clients
      WHERE client_id = ? AND is_active = 1`,
@@ -57,7 +56,7 @@ export async function getClient(clientId, clientSecret) {
 /**
  * getUser — validasi username (email) + password untuk password grant
  */
-export async function getUser(username, password) {
+async function getUser(username, password) {
   const [rows] = await db.execute(
     `SELECT id, nik, name, email, role, zone_id, is_active
      FROM citizen_citizens
@@ -95,7 +94,7 @@ export async function getUser(username, password) {
 /**
  * generateAccessToken — buat JWT sebagai access token
  */
-export async function generateAccessToken(client, user, scope) {
+async function generateAccessToken(client, user, scope) {
   const payload = {
     sub: user?.id || client.clientId,
     user_id: user?.id || null,
@@ -105,7 +104,7 @@ export async function generateAccessToken(client, user, scope) {
     client_id: client.clientId,
     scope: scope || "read",
     type: "access_token",
-    jti: uuidv4(),
+    jti: v4(),
   };
 
   return jwt.sign(payload, JWT_SECRET, {
@@ -117,14 +116,14 @@ export async function generateAccessToken(client, user, scope) {
 /**
  * generateRefreshToken — random UUID sebagai refresh token
  */
-export async function generateRefreshToken(client, user, scope) {
-  return uuidv4();
+async function generateRefreshToken(client, user, scope) {
+  return v4();
 }
 
 /**
  * saveToken — simpan access + refresh token ke DB
  */
-export async function saveToken(token, client, user) {
+async function saveToken(token, client, user) {
   const accessExpiresAt =
     token.accessTokenExpiresAt ||
     new Date(Date.now() + parseInt(ACCESS_TOKEN_TTL) * 1000);
@@ -162,7 +161,7 @@ export async function saveToken(token, client, user) {
 /**
  * getAccessToken — validasi access token (untuk introspection)
  */
-export async function getAccessToken(accessToken) {
+async function getAccessToken(accessToken) {
   // Coba verifikasi JWT dulu
   try {
     const decoded = jwt.verify(accessToken, JWT_SECRET);
@@ -197,7 +196,7 @@ export async function getAccessToken(accessToken) {
 /**
  * getRefreshToken — ambil refresh token dari DB
  */
-export async function getRefreshToken(refreshToken) {
+async function getRefreshToken(refreshToken) {
   const [rows] = await db.execute(
     `SELECT t.*, c.grant_types
      FROM shared_oauth_tokens t
@@ -226,7 +225,7 @@ export async function getRefreshToken(refreshToken) {
 /**
  * revokeToken — soft delete refresh token
  */
-export async function revokeToken(token) {
+async function revokeToken(token) {
   await db.execute(
     `UPDATE shared_oauth_tokens SET revoked_at = NOW()
      WHERE refresh_token = ?`,
@@ -242,7 +241,7 @@ export async function revokeToken(token) {
 /**
  * verifyScope — validasi scope yang diminta
  */
-export function verifyScope(token, scope) {
+function verifyScope(token, scope) {
   if (!scope) return true;
 
   const allowedScopes = ["read", "write", "admin", "iot"];
@@ -254,7 +253,7 @@ export function verifyScope(token, scope) {
 /**
  * validateScope — validasi scope saat request token
  */
-export function validateScope(user, client, scope) {
+function validateScope(user, client, scope) {
   const allowedScopes = ["read", "write", "admin", "iot"];
   if (!scope) return "read";
 
@@ -265,7 +264,7 @@ export function validateScope(user, client, scope) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 5. Export model object untuk oauth2-server
+// 5.  model object untuk oauth2-server
 // ─────────────────────────────────────────────────────────────
 
 const OAuthModel = {
@@ -281,4 +280,4 @@ const OAuthModel = {
   validateScope,
 };
 
-module.exports = OAuthModel;
+module.s = OAuthModel;
