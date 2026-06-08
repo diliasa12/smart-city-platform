@@ -1,13 +1,11 @@
-import { Router } from "express";
-import OAuth2Server from "@node-oauth/oauth2-server";
-import oauth from "../services/oauthService.js";
-import { getAccessToken, revokeToken } from "../models/oauthModel.js";
-import catchAsync from "../utils/catchAsync.js";
-import { apiResponse } from "../utils/response.js";
-import db from "../config/database.js";
-const Router = require("express");
 const OAuth2Server = require("@node-oauth/oauth2-server");
+const oauth = require("../config/oauthService");
 const { Request, Response } = OAuth2Server;
+const { getAccessToken, revokeToken } = require("../models/model");
+const catchAsync = require("../utils/catchAsync");
+const apiResponse = require("../utils/response");
+const db = require("../config/database");
+const Router = require("express");
 const router = Router();
 
 // ─────────────────────────────────────────────────────────────

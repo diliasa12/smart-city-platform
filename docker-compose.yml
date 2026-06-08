@@ -13,6 +13,7 @@ services:
   # ── INFRA ──────────────────────────────────────────────────────────────────
   mysql:
     image: mysql:8.0
+    container_name: smartcity-mysql
     environment:
       - MYSQL_ROOT_PASSWORD=rootpass
       - MYSQL_DATABASE=smartcity
@@ -21,23 +22,49 @@ services:
     networks:
       - smartcity-net
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      # Ditambahkan user dan password root agar healthcheck mysqladmin berjalan valid
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpass"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   rabbitmq:
     image: rabbitmq:3.12-management
+    container_name: smartcity-rabbitmq
     ports:
       - "15672:15672"
-      - "5672:5672" # Opsional: mengekspos port broker jika layanan luar butuh connect langsung
+      - "5672:5672"
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     networks:
       - smartcity-net
 
+  oauth-server:
+    build:
+      context: ./oauth-server
+      dockerfile: Dockerfile
+    container_name: smart-city-oauth-server
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      # PERBAIKAN: Spasi setelah tanda '=' di bawah ini telah dihapus total
+      - NODE_ENV=development
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=rootpass
+      - DB_NAME=smartcity
+      - JWT_SECRET=kelompok3
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - smartcity-net
+
   mosquitto:
     image: eclipse-mosquitto:2.0
+    container_name: smartcity-mosquitto
     ports:
       - "1883:1883"
     volumes:
@@ -51,6 +78,7 @@ services:
   # ── SERVICES ───────────────────────────────────────────────────────────────
   api-gateway:
     build: ./express-gateway
+    container_name: smartcity-api-gateway
     ports:
       - "3000:3000"
     environment:
@@ -60,54 +88,12 @@ services:
       - ENV_URL=http://env-service:8002
       - ML_URL=http://python-ml:5000
     depends_on:
-      - rabbitmq
-      - mysql
-    networks:
-      - smartcity-net
-
-  citizen-service:
-    build: ./php-citizen
-    environment:
-      - DB_HOST=mysql
-      - DB_NAME=smartcity
-      - RABBITMQ_HOST=rabbitmq
-    depends_on:
+      rabbitmq:
+        condition: service_started
       mysql:
         condition: service_healthy
     networks:
       - smartcity-net
-
-  traffic-service:
-    build: ./php-traffic
-    environment:
-      - DB_HOST=mysql
-      - RABBITMQ_HOST=rabbitmq
-    depends_on:
-      mysql:
-        condition: service_healthy
-    networks:
-      - smartcity-net
-
-  env-service:
-    build: ./php-environment
-    environment:
-      - DB_HOST=mysql
-      - RABBITMQ_HOST=rabbitmq
-    depends_on:
-      mysql:
-        condition: service_healthy
-    networks:
-      - smartcity-net
-
-  python-ml:
-    build: ./python-ml-service
-    environment:
-      - RABBITMQ_HOST=rabbitmq
-    depends_on:
-      - rabbitmq
-    networks:
-      - smartcity-net
-
   node-red:
     image: nodered/node-red:3.1
     container_name: smartcity-nodered
@@ -143,9 +129,11 @@ services:
       - mosquitto
     networks:
       - smartcity-net
+
   # ── MONITORING ─────────────────────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:v2.48.0
+    container_name: smartcity-prometheus
     ports:
       - "9090:9090"
     volumes:
@@ -155,10 +143,10 @@ services:
 
   grafana:
     image: grafana/grafana:10.2.0
+    container_name: smartcity-grafana
     ports:
       - "3001:3000"
     volumes:
       - grafana-data:/var/lib/grafana
     networks:
       - smartcity-net
-  

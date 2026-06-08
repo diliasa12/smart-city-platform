@@ -1,16 +1,14 @@
 const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
+
 const morgan = require("morgan");
-const oauthRoutes = require("./routes/oauthRoutes");
+const oauthRoutes = require("./routes/oauthRoute");
 const errorHandler = require("./middleware/errorHandler");
 const { PORT = 3002, NODE_ENV = "development" } = process.env;
 
 const app = express();
 
 // ── Middleware ────────────────────────────────────────────────
-app.use(helmet());
-app.use(cors());
+
 app.use(morgan(NODE_ENV === "production" ? "combined" : "dev"));
 
 // OAuth token endpoint butuh application/x-www-form-urlencoded
@@ -51,4 +49,4 @@ const server = app.listen(PORT, () => {
 process.on("SIGTERM", () => server.close(() => process.exit(0)));
 process.on("SIGINT", () => server.close(() => process.exit(0)));
 
-export default app;
+module.exports = app;

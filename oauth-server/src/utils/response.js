@@ -1,4 +1,4 @@
-export const apiResponse = (
+const apiResponse = (
   code,
   data,
   message,

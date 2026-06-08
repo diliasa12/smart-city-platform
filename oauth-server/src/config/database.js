@@ -4,7 +4,7 @@
  * Tabel yang digunakan: shared_oauth_clients, shared_oauth_tokens, citizen_citizens
  */
 
-import mysql from "mysql2/promise";
+const mysql = require("mysql2/promise");
 
 const {
   DB_HOST = "mysql",
