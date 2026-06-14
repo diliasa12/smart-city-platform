@@ -22,32 +22,31 @@ router.post(
     const oauthRequest = new Request(req);
     const oauthResponse = new Response(res);
 
-    const token = await oauth.token(oauthRequest, oauthResponse, {
-      requireClientAuthentication: {
-        password: false,
-        refresh_token: false,
-        client_credentials: true,
-      },
-    });
+    // 1. Eksekusi library oauth2-server secara synchronous menggunakan await.
+    // Ini akan otomatis memanggil getClient, getUserFromClient, dan saveToken di model Anda.
+    await oauth.token(oauthRequest, oauthResponse);
 
-    return res.status(200).json(
-      apiResponse(
-        200,
-        {
-          access_token: token.accessToken,
-          token_type: "Bearer",
-          expires_in: Math.floor(
-            (token.accessTokenExpiresAt - Date.now()) / 1000,
-          ),
-          refresh_token: token.refreshToken || undefined,
-          refresh_token_expires_in: token.refreshToken
-            ? parseInt(process.env.REFRESH_TOKEN_TTL || "604800")
-            : undefined,
-          scope: token.scope,
-        },
-        "Token berhasil diterbitkan",
-      ),
-    );
+    // 2. Amankan penanganan scope setelah data masuk ke oauthResponse.body
+    let finalizedScope = oauthResponse.body.scope;
+    if (finalizedScope && Array.isArray(finalizedScope)) {
+      finalizedScope = finalizedScope.join(" ");
+    } else if (!finalizedScope) {
+      finalizedScope = null;
+    }
+
+    // 3. Kembalikan response sukses sesuai format standar custom Anda
+    return res.status(200).json({
+      status: "success",
+      code: 200,
+      data: {
+        access_token: oauthResponse.body.access_token,
+        token_type: oauthResponse.body.token_type,
+        expires_in: oauthResponse.body.expires_in,
+        scope: finalizedScope,
+      },
+      message: "Token berhasil diterbitkan",
+      service: "oauth-server",
+    });
   }),
 );
 

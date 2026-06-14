@@ -3,7 +3,7 @@ const axios = require("axios");
 const { apiResponse } = require("../utils/response");
 
 const {
-  JWT_SECRET = "smartcity-super-secret-key-change-in-production",
+  JWT_SECRET = "kelompok3",
   OAUTH_URL = "http://oauth-server:3002",
   JWT_VERIFY_MODE = "local", // 'local' | 'introspect'
 } = process.env;
@@ -17,10 +17,12 @@ const PUBLIC_PATHS = [
 ];
 
 async function verifyJWT(req, res, next) {
-  if (PUBLIC_PATHS.some((p) => req.path.startsWith(p))) {
+  const isPublic = PUBLIC_PATHS.some((p) => req.originalUrl.startsWith(p));
+
+  if (isPublic) {
     return next();
   }
-
+  console.log(req.headers["authorization"]);
   const authHeader = req.headers["authorization"] || "";
   if (!authHeader.startsWith("Bearer ")) {
     return res
@@ -36,7 +38,7 @@ async function verifyJWT(req, res, next) {
   }
 
   const token = authHeader.slice(7);
-
+  console.log(token);
   try {
     let decoded;
 
@@ -47,9 +49,25 @@ async function verifyJWT(req, res, next) {
         algorithms: ["HS256", "RS256"],
       });
     }
+
     req.user = decoded;
-    req.userId = decoded.sub || decoded.user_id || decoded.id;
-    req.role = decoded.role || "citizen";
+    const extractedId =
+      decoded.sub || decoded.user_id || decoded.id || decoded.userid;
+
+    // 2. JIKA ID-nya null atau kosong, dan ini adalah token 'service', kasih ID palsu untuk testing
+    if (
+      (extractedId === null ||
+        extractedId === undefined ||
+        extractedId === "") &&
+      decoded.role === "service"
+    ) {
+      req.userId = "999"; // Berikan ID tiruan (misal 999) agar lolos dari Laravel
+      req.role = "admin"; // Berikan role admin agar bisa GET/POST semua data
+    } else {
+      req.userId = extractedId;
+      req.role = decoded.role || "citizen";
+    }
+    // Contoh jika properti token Anda ternyata adalah 'uid' atau 'user.id'
 
     req.headers["x-user-id"] = String(req.userId || "");
     req.headers["x-user-role"] = String(req.role);

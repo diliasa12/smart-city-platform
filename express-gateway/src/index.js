@@ -2,7 +2,10 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
-const { createProxyMiddleware } = require("http-proxy-middleware");
+const {
+  createProxyMiddleware,
+  fixRequestBody,
+} = require("http-proxy-middleware");
 
 const {
   globalLimiter,
@@ -20,7 +23,7 @@ const { metricsMiddleware } = require("./routes/metrics");
 const {
   PORT = 3000,
   NODE_ENV = "development",
-  CITIZEN_URL = "http://citizen-service:8000",
+  CITIZEN_URL = "http://smartcity-citizen:8000",
   TRAFFIC_URL = "http://traffic-service:8001",
   ENV_URL = "http://env-service:8002",
   ML_URL = "http://python-ml:5000",
@@ -38,8 +41,6 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: true }));
 
 // LAYER 2 — Logging & Metrics
 app.use(morgan(NODE_ENV === "production" ? "combined" : "dev"));
@@ -68,17 +69,30 @@ app.use(authLimiter);
 // LAYER 6 — Protected proxy routes
 
 // Citizen Service (PHP :8000)
-app.use(
-  ["/api/citizens", "/api/reports", "/api/notifications"],
-  createProxyMiddleware({
-    target: CITIZEN_URL,
-    changeOrigin: true,
-    on: {
-      error: (err, req, res) => upstreamError(res, "citizen-service", err),
-    },
-  }),
-);
+// Citizen Service (PHP :8000)
+const citizenProxy = createProxyMiddleware({
+  target: CITIZEN_URL, // Pastikan ini http://smartcity-citizen:8000
+  changeOrigin: true,
+  on: {
+    proxyReq: fixRequestBody,
+    error: (err, req, res) => upstreamError(res, "citizen-service", err),
+  },
+});
 
+app.use("/api/citizens", (req, res, next) => {
+  req.url = req.originalUrl;
+  citizenProxy(req, res, next);
+});
+
+app.use("/api/reports", (req, res, next) => {
+  req.url = req.originalUrl;
+  citizenProxy(req, res, next);
+});
+
+app.use("/api/notifications", (req, res, next) => {
+  req.url = req.originalUrl;
+  citizenProxy(req, res, next);
+});
 // Traffic Service (PHP :8001)
 app.use(
   "/api/traffic",
