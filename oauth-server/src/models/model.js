@@ -12,9 +12,9 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { v4 } = require("uuid");
-const db = require("../config/database");
+const pool = require("../config/database");
 const {
-  JWT_SECRET = "smartcity-super-secret-change-in-production",
+  JWT_SECRET = "kelompok3",
   ACCESS_TOKEN_TTL = "3600", // detik
   REFRESH_TOKEN_TTL = "604800", // 7 hari
 } = process.env;
@@ -27,28 +27,53 @@ const {
  * getClient — dipanggil pertama kali untuk validasi client_id + client_secret
  */
 async function getClient(clientId, clientSecret) {
-  const [rows] = await db.execute(
-    `SELECT * FROM shared_oauth_clients
-     WHERE client_id = ? AND is_active = 1`,
-    [clientId],
-  );
+  try {
+    const [rows] = await pool.execute(
+      "SELECT client_id, client_secret, grant_types, redirect_uris, is_active FROM shared_oauth_clients WHERE client_id = ?",
+      [clientId],
+    );
 
-  if (!rows.length) return null;
+    if (rows.length === 0) return null;
 
-  const client = rows[0];
+    const client = rows[0];
 
-  // Jika client_secret diberikan, validasi (untuk client_credentials grant)
-  if (clientSecret && client.client_secret !== clientSecret) return null;
+    // Proteksi jika client dinonaktifkan
+    if (!client.is_active) return null;
 
-  return {
-    id: client.client_id,
-    clientId: client.client_id,
-    clientSecret: client.client_secret,
-    grants: client.grant_types.split(",").map((g) => g.trim()),
-    redirectUris: client.redirect_uris ? client.redirect_uris.split(",") : [],
-  };
+    // Validasi secret jika disertakan dalam request
+    if (clientSecret && client.client_secret !== clientSecret) {
+      return null;
+    }
+
+    // Pembersihan total dari spasi tak terlihat yang merusak validasi library
+    const cleanedGrants = client.grant_types.split(",").map((g) => g.trim());
+    const cleanedRedirects = client.redirect_uris
+      ? client.redirect_uris.split(",").map((r) => r.trim())
+      : [];
+
+    // Format data yang super-aman untuk semua jenis grant type di library
+    return {
+      id: client.client_id, // Dibutuhkan oleh handler token
+      clientId: client.client_id, // DIwajibkan oleh beberapa internal handler password grant
+      grants: cleanedGrants, // Array bersih tanpa spasi: ["password", "client_credentials"]
+      grantTypes: cleanedGrants, // Fallback versi library lama/baru
+      redirectUris: cleanedRedirects,
+    };
+  } catch (error) {
+    console.error("Error pada getClient Model:", error.message);
+    throw error;
+  }
 }
-
+async function getUserFromClient(client) {
+  try {
+    // Karena ini Machine-to-Machine, tidak ada user (manusia) yang login.
+    // Kita kembalikan objek dengan id: null agar lolos validasi library.
+    return { id: null, username: client.id, is_client: true };
+  } catch (error) {
+    console.error("Error pada getUserFromClient Model:", error.message);
+    throw error;
+  }
+}
 // ─────────────────────────────────────────────────────────────
 // 2. USER METHODS (password grant)
 // ─────────────────────────────────────────────────────────────
@@ -57,26 +82,38 @@ async function getClient(clientId, clientSecret) {
  * getUser — validasi username (email) + password untuk password grant
  */
 async function getUser(username, password) {
-  const [rows] = await db.execute(
+  console.log("=== DEBUG OAUTH LOGIN ===");
+  console.log("1. Username dari Postman:", username);
+  console.log("2. Password plaintext dari Postman:", password);
+  const [rows] = await pool.execute(
     `SELECT id, nik, name, email, role, zone_id, is_active
      FROM citizen_citizens
      WHERE email = ? AND is_active = 1`,
     [username],
   );
+  console.log("3. Hasil Query User (rows):", rows);
 
-  if (!rows.length) return null;
-
+  if (!rows.length) {
+    console.log(
+      "❌ Error: User tidak ditemukan di database dengan email tersebut atau is_active != 1",
+    );
+    return null;
+  }
   const citizen = rows[0];
 
   // Ambil password hash secara terpisah
-  const [passRows] = await db.execute(
+  const [passRows] = await pool.execute(
     `SELECT password FROM citizen_citizens WHERE id = ?`,
     [citizen.id],
   );
-
+  console.log("4. Password Hash dari DB:", passRows[0]?.password);
   const isValid = await bcrypt.compare(password, passRows[0].password);
-  if (!isValid) return null;
-
+  console.log("5. Apakah Bcrypt Match?:", isValid);
+  if (!isValid) {
+    console.log("❌ Error: Password tidak cocok menurut Bcrypt!");
+    return null;
+  }
+  console.log("✅ Sukses: Kredensial valid!");
   return {
     id: citizen.id,
     email: citizen.email,
@@ -86,7 +123,12 @@ async function getUser(username, password) {
     nik: citizen.nik,
   };
 }
-
+async function getAuthorizationCode(code) {
+  return null;
+}
+async function revokeAuthorizationCode(code) {
+  return true;
+}
 // ─────────────────────────────────────────────────────────────
 // 3. TOKEN METHODS
 // ─────────────────────────────────────────────────────────────
@@ -96,12 +138,12 @@ async function getUser(username, password) {
  */
 async function generateAccessToken(client, user, scope) {
   const payload = {
-    sub: user?.id || client.clientId,
+    sub: user?.id || client.id,
     user_id: user?.id || null,
     email: user?.email || null,
     role: user?.role || "service",
     zone_id: user?.zone_id || null,
-    client_id: client.clientId,
+    client_id: client.id,
     scope: scope || "read",
     type: "access_token",
     jti: v4(),
@@ -121,41 +163,40 @@ async function generateRefreshToken(client, user, scope) {
 }
 
 /**
- * saveToken — simpan access + refresh token ke DB
+ * saveToken — simpan access + refresh token ke pool
  */
 async function saveToken(token, client, user) {
-  const accessExpiresAt =
-    token.accessTokenExpiresAt ||
-    new Date(Date.now() + parseInt(ACCESS_TOKEN_TTL) * 1000);
-  const refreshExpiresAt =
-    token.refreshTokenExpiresAt ||
-    new Date(Date.now() + parseInt(REFRESH_TOKEN_TTL) * 1000);
+  try {
+    // Menggunakan nama kolom yang sesuai skema Anda: expires_at, access_token, refresh_token
+    await pool.execute(
+      "INSERT INTO shared_oauth_tokens (client_id, user_id, access_token, refresh_token, scope, expires_at) VALUES (?, ?, ?, ?, ?, ?)",
+      [
+        client.id, // client_id (berasal dari mapped id di getClient)
+        user ? user.id : null, // user_id (NULL jika grant-type client_credentials)
+        token.access_token || token.accessToken,
+        token.refresh_token || token.refreshToken || null,
+        token.scope || null,
+        token.access_token_expires_at || token.accessTokenExpiresAt, // mysql2 otomatis mengonversi JS Date ke DATETIME
+      ],
+    );
 
-  await db.execute(
-    `INSERT INTO shared_oauth_tokens
-     (client_id, user_id, access_token, refresh_token, scope, expires_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [
-      client.clientId,
-      user?.id || null,
-      token.accessToken,
-      token.refreshToken || null,
-      token.scope || "read",
-      accessExpiresAt,
-    ],
-  );
-
-  return {
-    accessToken: token.accessToken,
-    accessTokenExpiresAt: accessExpiresAt,
-    refreshToken: token.refreshToken || null,
-    refreshTokenExpiresAt: refreshExpiresAt,
-    scope: token.scope || "read",
-    client: { id: client.clientId },
-    user: user
-      ? { id: user.id, email: user.email, role: user.role }
-      : { id: client.clientId },
-  };
+    // Kembalikan objek token yang terstruktur untuk dibaca oleh Router Express Anda
+    return {
+      accessToken: token.access_token || token.accessToken,
+      accessTokenExpiresAt:
+        token.access_token_expires_at || token.accessTokenExpiresAt,
+      refreshToken: token.refresh_token || token.refreshToken || null,
+      scope:
+        typeof token.scope === "string"
+          ? token.scope.split(" ")
+          : token.scope || [],
+      client: { id: client.id },
+      user: user || {},
+    };
+  } catch (error) {
+    console.error("Error pada saveToken Model:", error.message);
+    throw error;
+  }
 }
 
 /**
@@ -166,8 +207,8 @@ async function getAccessToken(accessToken) {
   try {
     const decoded = jwt.verify(accessToken, JWT_SECRET);
 
-    // Cek di DB apakah token sudah direvoke
-    const [rows] = await db.execute(
+    // Cek di pool apakah token sudah direvoke
+    const [rows] = await pool.execute(
       `SELECT * FROM shared_oauth_tokens
        WHERE access_token = ? AND revoked_at IS NULL AND expires_at > NOW()`,
       [accessToken],
@@ -179,7 +220,8 @@ async function getAccessToken(accessToken) {
     return {
       accessToken: accessToken,
       accessTokenExpiresAt: new Date(row.expires_at),
-      scope: row.scope,
+      scope:
+        typeof row.scope === "string" ? row.scope.split(" ") : row.scope || [],
       client: { id: row.client_id },
       user: {
         id: decoded.user_id || row.user_id,
@@ -194,10 +236,10 @@ async function getAccessToken(accessToken) {
 }
 
 /**
- * getRefreshToken — ambil refresh token dari DB
+ * getRefreshToken — ambil refresh token dari pool
  */
 async function getRefreshToken(refreshToken) {
-  const [rows] = await db.execute(
+  const [rows] = await pool.execute(
     `SELECT t.*, c.grant_types
      FROM shared_oauth_tokens t
      JOIN shared_oauth_clients c ON c.client_id = t.client_id
@@ -226,7 +268,7 @@ async function getRefreshToken(refreshToken) {
  * revokeToken — soft delete refresh token
  */
 async function revokeToken(token) {
-  await db.execute(
+  await pool.execute(
     `UPDATE shared_oauth_tokens SET revoked_at = NOW()
      WHERE refresh_token = ?`,
     [token.refreshToken],
@@ -264,7 +306,7 @@ function validateScope(user, client, scope) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 5.  model object untuk oauth2-server
+// 5. export model object untuk oauth2-server
 // ─────────────────────────────────────────────────────────────
 
 const OAuthModel = {
@@ -278,6 +320,9 @@ const OAuthModel = {
   revokeToken,
   verifyScope,
   validateScope,
+  getUserFromClient,
+  getAuthorizationCode,
+  revokeAuthorizationCode,
 };
 
-module.s = OAuthModel;
+module.exports = OAuthModel;

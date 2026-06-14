@@ -6,7 +6,6 @@ const errorHandler = require("./middleware/errorHandler");
 const { PORT = 3002, NODE_ENV = "development" } = process.env;
 
 const app = express();
-
 // ── Middleware ────────────────────────────────────────────────
 
 app.use(morgan(NODE_ENV === "production" ? "combined" : "dev"));
@@ -16,7 +15,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
 // ── Routes ────────────────────────────────────────────────────
-app.use("/oauth", oauthRoutes);
+app.use("/", oauthRoutes);
 app.use("/health", (req, res) => res.redirect("/oauth/health"));
 
 // ── 404 ───────────────────────────────────────────────────────

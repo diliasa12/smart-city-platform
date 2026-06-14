@@ -7,7 +7,7 @@
 const mysql = require("mysql2/promise");
 
 const {
-  DB_HOST = "mysql",
+  DB_HOST = "127.0.0.1",
   DB_PORT = "3306",
   DB_NAME = "smartcity",
   DB_USER = "root",

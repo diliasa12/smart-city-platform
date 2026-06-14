@@ -1,8 +1,7 @@
-version: "3.9"
-
 networks:
   smartcity-net:
     driver: bridge
+    
 
 volumes:
   mysql-data:
@@ -14,6 +13,8 @@ services:
   mysql:
     image: mysql:8.0
     container_name: smartcity-mysql
+    ports:
+      - "3306:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=rootpass
       - MYSQL_DATABASE=smartcity
@@ -45,7 +46,7 @@ services:
     container_name: smart-city-oauth-server
     restart: always
     ports:
-      - "5000:5000"
+      - "5000:3002"
     environment:
       - NODE_ENV=development
       - DB_HOST=mysql
@@ -145,8 +146,8 @@ services:
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_DATABASE=smartcity
-      - DB_USERNAME=svc_citizen
-      - DB_PASSWORD=CitizenSvc#2024!
+      - DB_USERNAME=root
+      - DB_PASSWORD=rootpass
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=guest
