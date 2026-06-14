@@ -4,22 +4,34 @@ namespace App\Services;
 
 use Exception;
 use Illuminate\Support\Facades\Log;
+use PhpAmqpLib\Connection\AMQPStreamConnection;
+use PhpAmqpLib\Message\AMQPMessage;
 
 class RabbitMQPublisher
 {
-    private $connection;
-    private $channel;
+    private ?AMQPStreamConnection $connection = null;
+    private $channel = null;
 
-    public function __construct()
+    /**
+     * Inisialisasi koneksi hanya saat benar-benar dibutuhkan (Lazy Connection)
+     */
+    private function connect(): void
     {
+        // Jika sudah terkoneksi, lewati
+        if ($this->channel !== null) {
+            return;
+        }
+
         try {
-            $this->connection = new \PhpAmqpLib\Connection\AMQPStreamConnection(
-                env('RABBITMQ_HOST', 'rabbitmq'),
-                env('RABBITMQ_PORT', 5672),
-                env('RABBITMQ_USER', 'guest'),
-                env('RABBITMQ_PASSWORD', 'guest'),
-                env('RABBITMQ_VHOST', '/')
+            // Gunakan config(), bukan env()
+            $this->connection = new AMQPStreamConnection(
+                config('services.rabbitmq.host', 'rabbitmq'),
+                config('services.rabbitmq.port', 5672),
+                config('services.rabbitmq.user', 'guest'),
+                config('services.rabbitmq.password', 'guest'),
+                config('services.rabbitmq.vhost', '/')
             );
+
             $this->channel = $this->connection->channel();
 
             $this->channel->exchange_declare(
@@ -37,6 +49,9 @@ class RabbitMQPublisher
 
     public function publish(string $routingKey, array $data): void
     {
+        // Panggil koneksi di sini
+        $this->connect();
+
         if (!$this->channel) {
             Log::warning('[RabbitMQ] Channel tidak tersedia, skip publish: ' . $routingKey);
             return;
@@ -44,9 +59,9 @@ class RabbitMQPublisher
 
         try {
             $payload = json_encode($data);
-            $message = new \PhpAmqpLib\Message\AMQPMessage($payload, [
+            $message = new AMQPMessage($payload, [
                 'content_type'  => 'application/json',
-                'delivery_mode' => \PhpAmqpLib\Message\AMQPMessage::DELIVERY_MODE_PERSISTENT,
+                'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
             ]);
 
             $this->channel->basic_publish(

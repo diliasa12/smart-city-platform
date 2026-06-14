@@ -1,15 +1,19 @@
-FROM php:8.3-fpm-alpine
+FROM php:8.4-fpm
 
 WORKDIR /var/www/html
 
-# Install dependencies sistem
-RUN apk add --no-cache \
+# Install dependencies sistem menggunakan apt-get (Debian/Ubuntu)
+RUN apt-get update && apt-get install -y \
     bash \
     curl \
     nginx \
     supervisor \
-    mysql-client \
-    && docker-php-ext-install pdo pdo_mysql bcmath
+    default-mysql-client \
+    unzip \
+    git \
+    && docker-php-ext-install pdo pdo_mysql bcmath sockets \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
@@ -18,7 +22,7 @@ COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 COPY . .
 
 # Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
+RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev --optimize-autoloader -vvv
 
 # Buat folder yang dibutuhkan Laravel dan set permission
 RUN mkdir -p storage/framework/cache/data \
@@ -42,6 +46,7 @@ RUN chmod +x /entrypoint.sh
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:8000/api/health || exit 1
 
 ENTRYPOINT ["/entrypoint.sh"]
+CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisord.conf"]

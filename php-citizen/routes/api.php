@@ -8,7 +8,9 @@ use App\Http\Controllers\HealthController;
 
 // Health check — tidak perlu auth
 Route::get('/health', [HealthController::class, 'index']);
-
+Route::get('/', function () {
+    return response()->json(['message' => 'Hello World!']);
+});
 // Semua route di bawah ini perlu header dari Gateway
 Route::middleware('gateway.auth')->group(function () {
 

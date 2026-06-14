@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Psy\Readline\Hoa\Console;
 
 class GatewayAuth
 {
@@ -12,7 +13,7 @@ class GatewayAuth
         $userId = $request->header('x-user-id');
         $role   = $request->header('x-user-role');
 
-        if (!$userId) {
+        if (is_null($userId) || $userId === '') {
             return response()->json([
                 'status'    => 'error',
                 'code'      => 401,
