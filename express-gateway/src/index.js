@@ -99,6 +99,7 @@ app.use(
   createProxyMiddleware({
     target: TRAFFIC_URL,
     changeOrigin: true,
+    pathRewrite: { "^/": "/api/traffic/" },  // tambahkan ini
     on: {
       error: (err, req, res) => upstreamError(res, "traffic-service", err),
     },
