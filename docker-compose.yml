@@ -22,7 +22,6 @@ services:
     networks:
       - smartcity-net
     healthcheck:
-      # Ditambahkan user dan password root agar healthcheck mysqladmin berjalan valid
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpass"]
       interval: 10s
       timeout: 5s
@@ -48,7 +47,6 @@ services:
     ports:
       - "5000:5000"
     environment:
-      # PERBAIKAN: Spasi setelah tanda '=' di bawah ini telah dihapus total
       - NODE_ENV=development
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -94,6 +92,7 @@ services:
         condition: service_healthy
     networks:
       - smartcity-net
+
   node-red:
     image: nodered/node-red:3.1
     container_name: smartcity-nodered
@@ -127,6 +126,37 @@ services:
       MQTT_INTERVAL: 30
     depends_on:
       - mosquitto
+    networks:
+      - smartcity-net
+
+  citizen-service:
+    build:
+      context: ./php-citizen
+      dockerfile: Dockerfile
+    container_name: smartcity-citizen
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=local
+      - APP_KEY=${CITIZEN_APP_KEY}
+      - APP_DEBUG=true
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=smartcity
+      - DB_USERNAME=svc_citizen
+      - DB_PASSWORD=CitizenSvc#2024!
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      - RABBITMQ_VHOST=/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
     networks:
       - smartcity-net
 
