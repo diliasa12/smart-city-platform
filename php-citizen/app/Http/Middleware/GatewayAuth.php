@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Psy\Readline\Hoa\Console;
 
 class GatewayAuth
 {
@@ -13,7 +12,11 @@ class GatewayAuth
         $userId = $request->header('x-user-id');
         $role   = $request->header('x-user-role');
 
-        if (is_null($userId) || $userId === '') {
+        // FIX: service token (IoT/Node-RED) boleh melewati tanpa user ID
+        // Gateway sudah memvalidasi JWT-nya, kita percaya header yang diteruskan
+        $isServiceToken = $role === 'service' || $role === 'iot';
+
+        if (!$isServiceToken && (is_null($userId) || $userId === '')) {
             return response()->json([
                 'status'    => 'error',
                 'code'      => 401,
@@ -25,7 +28,7 @@ class GatewayAuth
         }
 
         $request->merge([
-            'auth_user_id'   => (int) $userId,
+            'auth_user_id'   => $isServiceToken ? null : (int) $userId,
             'auth_user_role' => $role ?? 'citizen',
         ]);
 
