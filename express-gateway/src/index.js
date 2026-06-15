@@ -32,7 +32,6 @@ const {
 
 const app = express();
 
-// LAYER 1 — Security & parsing
 app.set("trust proxy", 1);
 app.use(helmet());
 app.use(
@@ -42,15 +41,12 @@ app.use(
   }),
 );
 
-// LAYER 2 — Logging & Metrics
 app.use(morgan(NODE_ENV === "production" ? "combined" : "dev"));
 app.use(requestLogger);
 app.use(metricsMiddleware);
 
-// LAYER 3 — Global rate limit (per IP, semua endpoint)
 app.use(globalLimiter);
 
-// LAYER 4 — Public routes (tidak perlu JWT)
 app.use("/health", healthRouter);
 app.use("/metrics", metricsRouter);
 app.use(
@@ -62,11 +58,8 @@ app.use(
   }),
 );
 
-// LAYER 5 — JWT Verification (semua rute di bawah ini wajib Bearer token)
 app.use(verifyJWT);
 app.use(authLimiter);
-
-// LAYER 6 — Protected proxy routes
 
 // Citizen Service (PHP :8000)
 const citizenProxy = createProxyMiddleware({
@@ -94,7 +87,6 @@ app.use("/api/notifications", (req, res, next) => {
 });
 
 // Traffic Service (PHP :8001)
-// FIX: pathRewrite yang benar — hapus prefix /api/traffic sebelum diteruskan
 app.use(
   "/api/traffic",
   createProxyMiddleware({
@@ -148,7 +140,6 @@ app.use(
   }),
 );
 
-// LAYER 7 — 404
 app.use((req, res) => {
   res
     .status(404)
@@ -162,7 +153,6 @@ app.use((req, res) => {
     );
 });
 
-// LAYER 8 — Error handler
 app.use(errorHandler);
 
 function upstreamError(res, serviceName, err) {
