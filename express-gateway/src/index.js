@@ -69,9 +69,8 @@ app.use(authLimiter);
 // LAYER 6 — Protected proxy routes
 
 // Citizen Service (PHP :8000)
-// Citizen Service (PHP :8000)
 const citizenProxy = createProxyMiddleware({
-  target: CITIZEN_URL, // Pastikan ini http://smartcity-citizen:8000
+  target: CITIZEN_URL,
   changeOrigin: true,
   on: {
     proxyReq: fixRequestBody,
@@ -93,14 +92,17 @@ app.use("/api/notifications", (req, res, next) => {
   req.url = req.originalUrl;
   citizenProxy(req, res, next);
 });
+
 // Traffic Service (PHP :8001)
+// FIX: pathRewrite yang benar — hapus prefix /api/traffic sebelum diteruskan
 app.use(
   "/api/traffic",
   createProxyMiddleware({
     target: TRAFFIC_URL,
     changeOrigin: true,
-    pathRewrite: { "^/": "/api/traffic/" },  // tambahkan ini
+    pathRewrite: { "^/api/traffic": "" },
     on: {
+      proxyReq: fixRequestBody,
       error: (err, req, res) => upstreamError(res, "traffic-service", err),
     },
   }),
@@ -112,7 +114,11 @@ app.use(
   createProxyMiddleware({
     target: ENV_URL,
     changeOrigin: true,
-    on: { error: (err, req, res) => upstreamError(res, "env-service", err) },
+    pathRewrite: { "^/api/environment": "" },
+    on: {
+      proxyReq: fixRequestBody,
+      error: (err, req, res) => upstreamError(res, "env-service", err),
+    },
   }),
 );
 
@@ -123,9 +129,12 @@ app.use(
   createProxyMiddleware({
     target: TRAFFIC_URL,
     changeOrigin: true,
-    router: (req) => (req.path.startsWith("/iot/air") ? ENV_URL : TRAFFIC_URL),
+    router: (req) => (req.path.startsWith("/air") ? ENV_URL : TRAFFIC_URL),
     pathRewrite: { "^/iot": "/api" },
-    on: { error: (err, req, res) => upstreamError(res, "iot-upstream", err) },
+    on: {
+      proxyReq: fixRequestBody,
+      error: (err, req, res) => upstreamError(res, "iot-upstream", err),
+    },
   }),
 );
 
