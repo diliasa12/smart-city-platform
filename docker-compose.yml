@@ -27,7 +27,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
+  phpmyadmin:
+    image: phpmyadmin:latest
+    hostname: localhost
+    restart: always
+    ports:
+      - 8081:80
+    environment:
+      - PMA_ARBITRARY=1
+    networks:
+      - smartcity-net
   rabbitmq:
     image: rabbitmq:3.12-management
     container_name: smartcity-rabbitmq
@@ -39,6 +48,7 @@ services:
     networks:
       - smartcity-net
 
+  # FIX: oauth-server port luar diubah ke 5001 agar tidak bentrok dengan python-ml di 5000
   oauth-server:
     build:
       context: ./oauth-server
@@ -46,7 +56,7 @@ services:
     container_name: smart-city-oauth-server
     restart: always
     ports:
-      - "5000:3002"
+      - "5001:3002"
     environment:
       - NODE_ENV=development
       - DB_HOST=mysql
@@ -86,6 +96,7 @@ services:
       - TRAFFIC_URL=http://traffic-service:8001
       - ENV_URL=http://env-service:8002
       - ML_URL=http://python-ml:5000
+      - OAUTH_URL=http://oauth-server:3002
     depends_on:
       rabbitmq:
         condition: service_started
@@ -104,7 +115,9 @@ services:
       - ./iot/node-red-data:/data
     environment:
       GATEWAY_URL: http://api-gateway:3000
-      IOT_TOKEN: ${JWT_SECRET}
+      # FIX: IOT_TOKEN diisi dengan JWT yang di-sign pakai JWT_SECRET
+      # Generate dengan: node -e "console.log(require('jsonwebtoken').sign({role:'iot'}, 'kelompok3', {expiresIn:'365d'}))"
+      IOT_TOKEN: ${IOT_TOKEN}
       MQTT_BROKER: mosquitto
       MQTT_PORT: 1883
     depends_on:
@@ -160,6 +173,60 @@ services:
         condition: service_started
     networks:
       - smartcity-net
+
+  # traffic-service:
+  #   build:
+  #     context: ./php-traffic
+  #     dockerfile: Dockerfile
+  #   container_name: smartcity-traffic-service
+  #   restart: always
+  #   ports:
+  #     - "8001:8001"
+  #   env_file:
+  #     - ./php-traffic/.env
+  #   depends_on:
+  #     mysql:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_started
+  #   networks:
+  #     - smartcity-net
+
+  # FIX: env-service sebelumnya tidak ada di docker-compose — sekarang ditambahkan
+  # env-service:
+  #   build:
+  #     context: ./php-environment
+  #     dockerfile: Dockerfile
+  #   container_name: smartcity-env-service
+  #   restart: always
+  #   ports:
+  #     - "8002:8002"
+  #   environment:
+  #     - APP_ENV=local
+  #     - APP_KEY=${ENV_APP_KEY}
+  #     - APP_DEBUG=true
+  #     - DB_CONNECTION=mysql
+  #     - DB_HOST=mysql
+  #     - DB_PORT=3306
+  #     - DB_DATABASE=smartcity
+  #     - DB_USERNAME=root
+  #     - DB_PASSWORD=rootpass
+  #   depends_on:
+  #     mysql:
+  #       condition: service_healthy
+  #   networks:
+  #     - smartcity-net
+
+  # python-ml:
+  #   build:
+  #     context: ./python-ml
+  #     dockerfile: Dockerfile
+  #   container_name: smartcity-python-ml
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5000:5000"
+  #   networks:
+  #     - smartcity-net
 
   # ── MONITORING ─────────────────────────────────────────────────────────────
   prometheus:
