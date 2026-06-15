@@ -82,21 +82,14 @@ async function getUserFromClient(client) {
  * getUser — validasi username (email) + password untuk password grant
  */
 async function getUser(username, password) {
-  console.log("=== DEBUG OAUTH LOGIN ===");
-  console.log("1. Username dari Postman:", username);
-  console.log("2. Password plaintext dari Postman:", password);
   const [rows] = await pool.execute(
     `SELECT id, nik, name, email, role, zone_id, is_active
      FROM citizen_citizens
      WHERE email = ? AND is_active = 1`,
     [username],
   );
-  console.log("3. Hasil Query User (rows):", rows);
 
   if (!rows.length) {
-    console.log(
-      "❌ Error: User tidak ditemukan di database dengan email tersebut atau is_active != 1",
-    );
     return null;
   }
   const citizen = rows[0];
@@ -106,14 +99,13 @@ async function getUser(username, password) {
     `SELECT password FROM citizen_citizens WHERE id = ?`,
     [citizen.id],
   );
-  console.log("4. Password Hash dari DB:", passRows[0]?.password);
+
   const isValid = await bcrypt.compare(password, passRows[0].password);
   console.log("5. Apakah Bcrypt Match?:", isValid);
   if (!isValid) {
-    console.log("❌ Error: Password tidak cocok menurut Bcrypt!");
     return null;
   }
-  console.log("✅ Sukses: Kredensial valid!");
+
   return {
     id: citizen.id,
     email: citizen.email,
@@ -167,7 +159,6 @@ async function generateRefreshToken(client, user, scope) {
  */
 async function saveToken(token, client, user) {
   try {
-    // Menggunakan nama kolom yang sesuai skema Anda: expires_at, access_token, refresh_token
     await pool.execute(
       "INSERT INTO shared_oauth_tokens (client_id, user_id, access_token, refresh_token, scope, expires_at) VALUES (?, ?, ?, ?, ?, ?)",
       [
