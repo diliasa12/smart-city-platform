@@ -1,20 +1,24 @@
 <?php
 
-use Illuminate\Foundation\Application;
-use Illuminate\Http\Request;
+define('ROOT', dirname(__DIR__));
 
-define('LARAVEL_START', microtime(true));
-
-// Determine if the application is in maintenance mode...
-if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
-    require $maintenance;
+// Load environment variables dari .env
+if (file_exists(ROOT . '/.env')) {
+    $lines = file(ROOT . '/.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (str_starts_with(trim($line), '#')) continue;
+        if (!str_contains($line, '=')) continue;
+        [$key, $value] = explode('=', $line, 2);
+        $_ENV[trim($key)] = trim($value);
+    }
 }
 
-// Register the Composer autoloader...
-require __DIR__.'/../vendor/autoload.php';
+// Autoload via Composer
+require ROOT . '/vendor/autoload.php';
 
-// Bootstrap Laravel and handle the request...
-/** @var Application $app */
-$app = require_once __DIR__.'/../bootstrap/app.php';
+// Header JSON untuk semua response
+header('Content-Type: application/json');
+header('X-Service: traffic-service');
 
-$app->handleRequest(Request::capture());
+// Load routes
+require ROOT . '/routes/api.php';

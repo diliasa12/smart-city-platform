@@ -7,7 +7,8 @@ const {
   OAUTH_URL = "http://oauth-server:3002",
   JWT_VERIFY_MODE = "local", // 'local' | 'introspect'
 } = process.env;
-// PUBLIC paths — skip JWT chec
+
+// PUBLIC paths — skip JWT check
 const PUBLIC_PATHS = [
   "/health",
   "/metrics",
@@ -22,7 +23,7 @@ async function verifyJWT(req, res, next) {
   if (isPublic) {
     return next();
   }
-  console.log(req.headers["authorization"]);
+
   const authHeader = req.headers["authorization"] || "";
   if (!authHeader.startsWith("Bearer ")) {
     return res
@@ -38,7 +39,7 @@ async function verifyJWT(req, res, next) {
   }
 
   const token = authHeader.slice(7);
-  console.log(token);
+
   try {
     let decoded;
 
@@ -51,23 +52,37 @@ async function verifyJWT(req, res, next) {
     }
 
     req.user = decoded;
-    const extractedId =
-      decoded.sub || decoded.user_id || decoded.id || decoded.userid;
 
-    // 2. JIKA ID-nya null atau kosong, dan ini adalah token 'service', kasih ID palsu untuk testing
-    if (
-      (extractedId === null ||
-        extractedId === undefined ||
-        extractedId === "") &&
-      decoded.role === "service"
-    ) {
-      req.userId = "999"; // Berikan ID tiruan (misal 999) agar lolos dari Laravel
-      req.role = "admin"; // Berikan role admin agar bisa GET/POST semua data
+    // FIX: ekstrak user ID dari berbagai kemungkinan field
+    const extractedId =
+      decoded.sub || decoded.user_id || decoded.id || decoded.userid || null;
+
+    // FIX: cek role 'service' atau 'iot' — keduanya mendapat akses admin
+    // Token IoT dari Node-RED tidak punya user ID, itu memang by design
+    const isServiceToken =
+      decoded.role === "service" ||
+      decoded.role === "iot" ||
+      (!extractedId && !decoded.email);
+
+    if (isServiceToken) {
+      req.userId = null;
+      req.role = "service";
     } else {
+      if (!extractedId) {
+        return res
+          .status(401)
+          .json(
+            apiResponse(
+              401,
+              null,
+              "Token tidak valid: user ID tidak ditemukan.",
+              "error",
+            ),
+          );
+      }
       req.userId = extractedId;
       req.role = decoded.role || "citizen";
     }
-    // Contoh jika properti token Anda ternyata adalah 'uid' atau 'user.id'
 
     req.headers["x-user-id"] = String(req.userId || "");
     req.headers["x-user-role"] = String(req.role);
@@ -116,6 +131,7 @@ function requireRole(...roles) {
     next();
   };
 }
+
 // OAuth 2.0 Token Introspection (RFC 7662)
 async function introspectToken(token) {
   const response = await axios.post(

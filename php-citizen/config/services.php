@@ -33,6 +33,13 @@ return [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
+    ], // Tambahkan blok ini di array return pada file config/services.php
+    'rabbitmq' => [
+        'host'     => env('RABBITMQ_HOST', 'rabbitmq'),
+        'port'     => env('RABBITMQ_PORT', 5672),
+        'user'     => env('RABBITMQ_USER', 'guest'),
+        'password' => env('RABBITMQ_PASSWORD', 'guest'),
+        'vhost'    => env('RABBITMQ_VHOST', '/'),
     ],
 
 ];
