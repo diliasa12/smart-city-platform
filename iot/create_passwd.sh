@@ -1,14 +1,8 @@
-#!/bin/sh
-# ============================================================
-#  iot/create_passwd.sh
-#  Generate file passwd untuk Mosquitto menggunakan
-#  mosquitto_passwd (sudah include di image eclipse-mosquitto)
-#
 #  Jalankan sekali sebelum docker compose up:
 #    chmod +x iot/create_passwd.sh
 #    docker run --rm -v $(pwd)/iot:/mosquitto/config \
 #      eclipse-mosquitto:2.0 sh /mosquitto/config/create_passwd.sh
-# ============================================================
+
 
 PASSWD_FILE="/mosquitto/config/passwd"
 

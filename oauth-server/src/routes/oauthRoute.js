@@ -8,25 +8,20 @@ const db = require("../config/database");
 const Router = require("express");
 const router = Router();
 
-// ─────────────────────────────────────────────────────────────
 // POST /oauth/token
-// ─────────────────────────────────────────────────────────────
 // Grant types:
 //   grant_type=password            → citizen login (email + password)
 //   grant_type=client_credentials  → service/IoT (client_id + client_secret)
 //   grant_type=refresh_token       → perpanjang sesi
-// ─────────────────────────────────────────────────────────────
+
 router.post(
   "/token",
   catchAsync(async (req, res) => {
     const oauthRequest = new Request(req);
     const oauthResponse = new Response(res);
 
-    // 1. Eksekusi library oauth2-server secara synchronous menggunakan await.
-    // Ini akan otomatis memanggil getClient, getUserFromClient, dan saveToken di model Anda.
     await oauth.token(oauthRequest, oauthResponse);
 
-    // 2. Amankan penanganan scope setelah data masuk ke oauthResponse.body
     let finalizedScope = oauthResponse.body.scope;
     if (finalizedScope && Array.isArray(finalizedScope)) {
       finalizedScope = finalizedScope.join(" ");
@@ -34,7 +29,6 @@ router.post(
       finalizedScope = null;
     }
 
-    // 3. Kembalikan response sukses sesuai format standar custom Anda
     return res.status(200).json({
       status: "success",
       code: 200,
@@ -50,11 +44,10 @@ router.post(
   }),
 );
 
-// ─────────────────────────────────────────────────────────────
 // POST /oauth/introspect
 // Digunakan oleh API Gateway untuk validasi token
 // Body: token=<access_token>
-// ─────────────────────────────────────────────────────────────
+
 router.post(
   "/introspect",
   catchAsync(async (req, res) => {
@@ -69,7 +62,6 @@ router.post(
     const tokenData = await getAccessToken(tokenValue);
 
     if (!tokenData) {
-      // RFC 7662: token tidak aktif → kembalikan { active: false }
       return res
         .status(200)
         .json(
@@ -105,11 +97,10 @@ router.post(
   }),
 );
 
-// ─────────────────────────────────────────────────────────────
 // POST /oauth/revoke
 // Cabut access token atau refresh token
 // Body: token=<token_value>  &  token_type_hint=access_token|refresh_token
-// ─────────────────────────────────────────────────────────────
+
 router.post(
   "/revoke",
   catchAsync(async (req, res) => {
@@ -140,9 +131,7 @@ router.post(
   }),
 );
 
-// ─────────────────────────────────────────────────────────────
 // GET /health
-// ─────────────────────────────────────────────────────────────
 router.get(
   "/health",
   catchAsync(async (req, res) => {

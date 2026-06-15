@@ -13,7 +13,7 @@ async function runSeeder() {
   // 1. Generate hash menggunakan library Bcrypt yang sama dengan internal app
   const hashedPassword = await bcrypt.hash("Password123!", 10);
 
-  console.log("⏳ Memulai seeding data warga...");
+  console.log("Memulai seeding data warga...");
 
   // 2. Insert data menggunakan hash yang sudah jadi
   const citizens = [
@@ -59,7 +59,7 @@ async function runSeeder() {
   }
 
   console.log(
-    "✅ Seeding selesai! Semua password warga sekarang otomatis match dengan Bcrypt Node.js.",
+    "Seeding selesai! Semua password warga sekarang otomatis match dengan Bcrypt Node.js.",
   );
   await pool.end();
 }

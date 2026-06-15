@@ -1,15 +1,3 @@
-#!/usr/bin/env node
-/**
- * generate-iot-token.js
- *
- * Jalankan sekali untuk generate IOT_TOKEN yang dibutuhkan Node-RED:
- *   node generate-iot-token.js
- *
- * Lalu salin output ke .env sebagai nilai IOT_TOKEN=...
- *
- * Requires: npm install jsonwebtoken  (atau pakai node_modules gateway)
- */
-
 const jwt = require("jsonwebtoken");
 
 const JWT_SECRET = process.env.JWT_SECRET || "kelompok3";
