@@ -1,7 +1,3 @@
-# ============================================================
-#  oauth-server/Dockerfile
-# ============================================================
-
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
