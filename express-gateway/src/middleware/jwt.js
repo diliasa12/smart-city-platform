@@ -8,7 +8,6 @@ const {
   JWT_VERIFY_MODE = "local", // 'local' | 'introspect'
 } = process.env;
 
-// PUBLIC paths — skip JWT check
 const PUBLIC_PATHS = [
   "/health",
   "/metrics",
@@ -53,12 +52,9 @@ async function verifyJWT(req, res, next) {
 
     req.user = decoded;
 
-    // FIX: ekstrak user ID dari berbagai kemungkinan field
     const extractedId =
       decoded.sub || decoded.user_id || decoded.id || decoded.userid || null;
 
-    // FIX: cek role 'service' atau 'iot' — keduanya mendapat akses admin
-    // Token IoT dari Node-RED tidak punya user ID, itu memang by design
     const isServiceToken =
       decoded.role === "service" ||
       decoded.role === "iot" ||

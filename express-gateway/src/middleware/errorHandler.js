@@ -8,7 +8,6 @@ function errorHandler(err, req, res, next) {
     err,
   );
 
-  // HTTP errors yang dilempar manual
   if (err.status || err.statusCode) {
     const code = err.status || err.statusCode;
     return res
@@ -18,7 +17,6 @@ function errorHandler(err, req, res, next) {
       );
   }
 
-  // Axios / upstream connection error
   if (err.code === "ECONNREFUSED" || err.code === "ENOTFOUND") {
     return res
       .status(503)
@@ -38,7 +36,6 @@ function errorHandler(err, req, res, next) {
       .json(apiResponse(504, null, "Request ke upstream timeout", "error"));
   }
 
-  // Default 500
   res
     .status(500)
     .json(
