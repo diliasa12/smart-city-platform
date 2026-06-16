@@ -55,83 +55,58 @@ services:
       - "3000:3000"
     environment:
       - JWT_SECRET=${JWT_SECRET}
-      - CITIZEN_SERVICE_URL=http://citizen-service:8000
-      - TRAFFIC_SERVICE_URL=http://traffic-service:8001
-      - ENV_SERVICE_URL=http://env-service:8002
-      - PYTHON_ML_URL=http://python-ml:5000
+      - ML_URL=http://python-ml:5000
+      - OAUTH_URL=http://oauth-server:3002
     depends_on:
-      - rabbitmq
-      - mysql
+      mysql:
+        condition: service_healthy
     networks:
       - smartcity-net
+
 
   citizen-service:
-    build: ./php-citizen
-    environment:
-      - DB_HOST=mysql
-      - DB_NAME=smartcity
-      - RABBITMQ_HOST=rabbitmq
-    depends_on:
-      mysql:
-        condition: service_healthy
-    networks:
-      - smartcity-net
-
-  traffic-service:
-    build: ./php-traffic
-    environment:
-      - DB_HOST=mysql
-      - RABBITMQ_HOST=rabbitmq
-    depends_on:
-      mysql:
-        condition: service_healthy
-    networks:
-      - smartcity-net
-
-  env-service:
-    build: ./php-environment
-    environment:
-      - DB_HOST=mysql
-      - RABBITMQ_HOST=rabbitmq
-    depends_on:
-      mysql:
-        condition: service_healthy
-    networks:
-      - smartcity-net
-
-  python-ml:
-    build: ./python-ml-service
-    environment:
-      - RABBITMQ_HOST=rabbitmq
-    depends_on:
-      - rabbitmq
-    networks:
-      - smartcity-net
-
-  node-red:
-    image: nodered/node-red:3.1
-    ports:
-      - "1880:1880"
-    volumes:
-      - ./iot/node-red-data:/data
-    networks:
-      - smartcity-net
-  iot-simulator:
     build:
-      context: ./iot
+      context: ./php-citizen
       dockerfile: Dockerfile
-    container_name: smartcity-iot-simulator
+    container_name: smartcity-citizen
     restart: unless-stopped
+    ports:
+      - "8000:8000"
     environment:
-      MQTT_BROKER: mosquitto
-      MQTT_PORT: 1883
-      MQTT_USERNAME: iot_device
-      MQTT_PASSWORD: iot_secret
-      MQTT_INTERVAL: 30
+      - APP_ENV=local
+      - APP_KEY=${CITIZEN_APP_KEY}
+      - APP_DEBUG=true
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=smartcity
+      - DB_USERNAME=root
+      - DB_PASSWORD=rootpass
+      - RABBITMQ_HOST=smartcity-rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      - RABBITMQ_VHOST=/
     depends_on:
-      - mosquitto
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
     networks:
       - smartcity-net
+
+  
+  # python-ml:
+  #   build:
+  #     context: ./python-ml
+  #     dockerfile: Dockerfile
+  #   container_name: smartcity-python-ml
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5000:5000"
+  #   networks:
+  #     - smartcity-net
+
   # ── MONITORING ─────────────────────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:v2.48.0
@@ -150,4 +125,5 @@ services:
       - grafana-data:/var/lib/grafana
     networks:
       - smartcity-net
+
   
