@@ -33,7 +33,7 @@ INSERT INTO shared_zones (id, name, city_district, coordinates, area_km2) VALUES
 -- 2. OAUTH CLIENTS
 -- ============================================================
 INSERT INTO shared_oauth_clients (id, client_id, client_secret, grant_types, redirect_uris, description) VALUES
-(1, 'citizen-web-app',    SHA2('secret-citizen-web-2024',256),    'authorization_code,refresh_token', 'https://app.smartcity.id/callback',       'Citizen portal web app'),
+(1, 'citizen-web-app',    SHA2('secret-citizen-web-2024',256),    'authorization_code,refresh_token,password', 'https://app.smartcity.id/callback',       'Citizen portal web app'),
 (2, 'traffic-dashboard',  SHA2('secret-traffic-dash-2024',256),   'client_credentials',               'https://traffic.smartcity.id/callback',   'Traffic monitoring dashboard'),
 (3, 'env-monitor-app',    SHA2('secret-env-monitor-2024',256),    'client_credentials',               'https://env.smartcity.id/callback',       'Environment monitoring service'),
 (4, 'admin-backoffice',   SHA2('secret-admin-bo-2024',256),       'authorization_code,refresh_token', 'https://admin.smartcity.id/callback',     'Admin back-office portal');

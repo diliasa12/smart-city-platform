@@ -2,7 +2,10 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
-const { createProxyMiddleware } = require("http-proxy-middleware");
+const {
+  createProxyMiddleware,
+  fixRequestBody,
+} = require("http-proxy-middleware");
 
 const {
   globalLimiter,
@@ -20,7 +23,7 @@ const { metricsMiddleware } = require("./routes/metrics");
 const {
   PORT = 3000,
   NODE_ENV = "development",
-  CITIZEN_URL = "http://citizen-service:8000",
+  CITIZEN_URL = "http://smartcity-citizen:8000",
   TRAFFIC_URL = "http://traffic-service:8001",
   ENV_URL = "http://env-service:8002",
   ML_URL = "http://python-ml:5000",
@@ -29,7 +32,6 @@ const {
 
 const app = express();
 
-// LAYER 1 — Security & parsing
 app.set("trust proxy", 1);
 app.use(helmet());
 app.use(
@@ -38,46 +40,51 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: true }));
 
-// LAYER 2 — Logging & Metrics
 app.use(morgan(NODE_ENV === "production" ? "combined" : "dev"));
 app.use(requestLogger);
 app.use(metricsMiddleware);
 
-// LAYER 3 — Global rate limit (per IP, semua endpoint)
 app.use(globalLimiter);
 
-// LAYER 4 — Public routes (tidak perlu JWT)
 app.use("/health", healthRouter);
 app.use("/metrics", metricsRouter);
 app.use(
   "/oauth",
   createProxyMiddleware({
-    target: OAUTH_SERVER_URL,
+    target: OAUTH_URL,
     changeOrigin: true,
     on: { error: (err, req, res) => upstreamError(res, "oauth-server", err) },
   }),
 );
 
-// LAYER 5 — JWT Verification (semua rute di bawah ini wajib Bearer token)
 app.use(verifyJWT);
 app.use(authLimiter);
 
-// LAYER 6 — Protected proxy routes
-
 // Citizen Service (PHP :8000)
-app.use(
-  ["/api/citizens", "/api/reports", "/api/notifications"],
-  createProxyMiddleware({
-    target: CITIZEN_URL,
-    changeOrigin: true,
-    on: {
-      error: (err, req, res) => upstreamError(res, "citizen-service", err),
-    },
-  }),
-);
+const citizenProxy = createProxyMiddleware({
+  target: CITIZEN_URL,
+  changeOrigin: true,
+  on: {
+    proxyReq: fixRequestBody,
+    error: (err, req, res) => upstreamError(res, "citizen-service", err),
+  },
+});
+
+app.use("/api/citizens", (req, res, next) => {
+  req.url = req.originalUrl;
+  citizenProxy(req, res, next);
+});
+
+app.use("/api/reports", (req, res, next) => {
+  req.url = req.originalUrl;
+  citizenProxy(req, res, next);
+});
+
+app.use("/api/notifications", (req, res, next) => {
+  req.url = req.originalUrl;
+  citizenProxy(req, res, next);
+});
 
 // Traffic Service (PHP :8001)
 app.use(
@@ -85,7 +92,9 @@ app.use(
   createProxyMiddleware({
     target: TRAFFIC_URL,
     changeOrigin: true,
+    pathRewrite: { "^/api/traffic": "" },
     on: {
+      proxyReq: fixRequestBody,
       error: (err, req, res) => upstreamError(res, "traffic-service", err),
     },
   }),
@@ -97,7 +106,11 @@ app.use(
   createProxyMiddleware({
     target: ENV_URL,
     changeOrigin: true,
-    on: { error: (err, req, res) => upstreamError(res, "env-service", err) },
+    pathRewrite: { "^/api/environment": "" },
+    on: {
+      proxyReq: fixRequestBody,
+      error: (err, req, res) => upstreamError(res, "env-service", err),
+    },
   }),
 );
 
@@ -108,9 +121,12 @@ app.use(
   createProxyMiddleware({
     target: TRAFFIC_URL,
     changeOrigin: true,
-    router: (req) => (req.path.startsWith("/iot/air") ? ENV_URL : TRAFFIC_URL),
+    router: (req) => (req.path.startsWith("/air") ? ENV_URL : TRAFFIC_URL),
     pathRewrite: { "^/iot": "/api" },
-    on: { error: (err, req, res) => upstreamError(res, "iot-upstream", err) },
+    on: {
+      proxyReq: fixRequestBody,
+      error: (err, req, res) => upstreamError(res, "iot-upstream", err),
+    },
   }),
 );
 
@@ -118,13 +134,12 @@ app.use(
 app.use(
   ["/predict", "/detect", "/model"],
   createProxyMiddleware({
-    target: PYTHON_ML_URL,
+    target: ML_URL,
     changeOrigin: true,
     on: { error: (err, req, res) => upstreamError(res, "python-ml", err) },
   }),
 );
 
-// LAYER 7 — 404
 app.use((req, res) => {
   res
     .status(404)
@@ -138,7 +153,6 @@ app.use((req, res) => {
     );
 });
 
-// LAYER 8 — Error handler
 app.use(errorHandler);
 
 function upstreamError(res, serviceName, err) {
@@ -162,8 +176,8 @@ const server = app.listen(PORT, () => {
   console.log(`  Citizen  → ${CITIZEN_URL}`);
   console.log(`  Traffic  → ${TRAFFIC_URL}`);
   console.log(`  Env      → ${ENV_URL}`);
-  console.log(`  ML       → ${PYTHON_ML_URL}`);
-  console.log(`  OAuth    → ${OAUTH_SERVER_URL}`);
+  console.log(`  ML       → ${ML_URL}`);
+  console.log(`  OAuth    → ${OAUTH_URL}`);
   console.log("══════════════════════════════════════════════\n");
 });
 

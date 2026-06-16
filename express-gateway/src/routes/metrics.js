@@ -79,13 +79,11 @@ function metricsMiddleware(req, res, next) {
 }
 
 router.get("/", async (req, res) => {
-  // Hanya izinkan akses dari internal / Prometheus (opsional: cek IP)
   res.set("Content-Type", register.contentType);
   res.end(await register.metrics());
 });
 
 function normalizeRoute(path) {
-  // Normalise agar tidak terlalu banyak label unik
   return path
     .replace(/\/\d+/g, "/:id") // /citizens/123 → /citizens/:id
     .replace(/\?.*$/, ""); // hapus query string

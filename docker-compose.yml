@@ -1,8 +1,7 @@
-version: "3.9"
-
 networks:
   smartcity-net:
     driver: bridge
+    
 
 volumes:
   mysql-data:
@@ -13,6 +12,9 @@ services:
   # ── INFRA ──────────────────────────────────────────────────────────────────
   mysql:
     image: mysql:8.0
+    container_name: smartcity-mysql
+    ports:
+      - "3306:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=rootpass
       - MYSQL_DATABASE=smartcity
@@ -21,23 +23,57 @@ services:
     networks:
       - smartcity-net
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpass"]
       interval: 10s
       timeout: 5s
       retries: 5
-
+  phpmyadmin:
+    image: phpmyadmin:latest
+    hostname: localhost
+    restart: always
+    ports:
+      - 8081:80
+    environment:
+      - PMA_ARBITRARY=1
+    networks:
+      - smartcity-net
   rabbitmq:
     image: rabbitmq:3.12-management
+    container_name: smartcity-rabbitmq
     ports:
       - "15672:15672"
-      - "5672:5672" # Opsional: mengekspos port broker jika layanan luar butuh connect langsung
+      - "5672:5672"
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     networks:
       - smartcity-net
 
+  # FIX: oauth-server port luar diubah ke 5001 agar tidak bentrok dengan python-ml di 5000
+  oauth-server:
+    build:
+      context: ./oauth-server
+      dockerfile: Dockerfile
+    container_name: smart-city-oauth-server
+    restart: always
+    ports:
+      - "5001:3002"
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=rootpass
+      - DB_NAME=smartcity
+      - JWT_SECRET=kelompok3
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - smartcity-net
+
   mosquitto:
     image: eclipse-mosquitto:2.0
+    container_name: smartcity-mosquitto
     ports:
       - "1883:1883"
     volumes:
@@ -51,6 +87,7 @@ services:
   # ── SERVICES ───────────────────────────────────────────────────────────────
   api-gateway:
     build: ./express-gateway
+    container_name: smartcity-api-gateway
     ports:
       - "3000:3000"
     environment:
@@ -88,6 +125,8 @@ services:
       - RABBITMQ_PASSWORD=guest
       - RABBITMQ_VHOST=/
     depends_on:
+      rabbitmq:
+        condition: service_started
       mysql:
         condition: service_healthy
       rabbitmq:
@@ -110,6 +149,7 @@ services:
   # ── MONITORING ─────────────────────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:v2.48.0
+    container_name: smartcity-prometheus
     ports:
       - "9090:9090"
     volumes:
@@ -119,6 +159,7 @@ services:
 
   grafana:
     image: grafana/grafana:10.2.0
+    container_name: smartcity-grafana
     ports:
       - "3001:3000"
     volumes:

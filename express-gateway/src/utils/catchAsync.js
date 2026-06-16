@@ -1,8 +1,5 @@
-const catchAsync = (controller) => async (req, res) => {
-  try {
-    await controller(req, res, next);
-  } catch (error) {
-    return next(error);
-  }
+const catchAsync = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
 };
-export default catchAsync;
+
+module.exports = catchAsync;
