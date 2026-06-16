@@ -1,6 +1,10 @@
 const express = require("express");
 const mqtt = require("mqtt");
 const app = express();
+const path = require("path");
+const sound = require("sound-play");
+const dotenv = require("dotenv");
+dotenv.config();
 app.use(require("cors")());
 app.use(express.json());
 
@@ -24,13 +28,12 @@ if (IS_DEV) {
   console.log("[MODE] Development - broker publik");
 } else {
   // Produksi: cluster sendiri
-  connectUrl =
-    "mqtts://b15eff722b7a429d8c77f46c34e468d1.s1.eu.hivemq.cloud:8883";
+  connectUrl = process.env.MQTT_CONNECTION;
   configMqtt = {
     clientId: "server-prod-" + Math.random().toString(16).substr(2, 8),
     connectTimeout: 4000,
-    username: "Kelompok3",
-    password: "Kelompok3",
+    username: process.env.USERNAME_HIVEMQ,
+    password: process.env.PASSWORD_HIVEMQ,
     reconnectPeriod: 1000,
   };
   console.log("[MODE] Production - HiveMQ Cloud");
@@ -46,6 +49,10 @@ mqttClient.on("connect", () => {
 mqttClient.on("message", (topic, message) => {
   try {
     const data = JSON.parse(message.toString());
+    if (data.kebisingan > 50) {
+      const audio = path.join(__dirname, "..", "audio", "alert.wav");
+      sound.play(audio);
+    }
     deviceData[data.device_id] = {
       ...data,
       receivedAt: new Date().toISOString(),
