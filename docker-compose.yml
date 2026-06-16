@@ -71,18 +71,7 @@ services:
     networks:
       - smartcity-net
 
-  mosquitto:
-    image: eclipse-mosquitto:2.0
-    container_name: smartcity-mosquitto
-    ports:
-      - "1883:1883"
-    volumes:
-      - ./iot/mosquitto.conf:/mosquitto/config/mosquitto.conf
-      - ./iot/passwd:/mosquitto/config/passwd
-      - ./iot/data:/mosquitto/data
-      - ./iot/log:/mosquitto/log
-    networks:
-      - smartcity-net
+ 
 
   # ── SERVICES ───────────────────────────────────────────────────────────────
   api-gateway:
@@ -129,8 +118,6 @@ services:
         condition: service_started
       mysql:
         condition: service_healthy
-      rabbitmq:
-        condition: service_started
     networks:
       - smartcity-net
 
