@@ -25,7 +25,7 @@ class RabbitMQPublisher
         try {
             // Gunakan config(), bukan env()
             $this->connection = new AMQPStreamConnection(
-                config('services.rabbitmq.host', 'rabbitmq'),
+                config('services.rabbitmq.host', 'smartcity-rabbitmq'),
                 config('services.rabbitmq.port', 5672),
                 config('services.rabbitmq.user', 'guest'),
                 config('services.rabbitmq.password', 'guest'),

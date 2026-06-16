@@ -92,56 +92,14 @@ services:
       - "3000:3000"
     environment:
       - JWT_SECRET=${JWT_SECRET}
-      - CITIZEN_URL=http://citizen-service:8000
-      - TRAFFIC_URL=http://traffic-service:8001
-      - ENV_URL=http://env-service:8002
       - ML_URL=http://python-ml:5000
       - OAUTH_URL=http://oauth-server:3002
     depends_on:
-      rabbitmq:
-        condition: service_started
       mysql:
         condition: service_healthy
     networks:
       - smartcity-net
 
-  node-red:
-    image: nodered/node-red:3.1
-    container_name: smartcity-nodered
-    restart: unless-stopped
-    ports:
-      - "1880:1880"
-    volumes:
-      - ./iot/node-red-data:/data
-    environment:
-      GATEWAY_URL: http://api-gateway:3000
-      # FIX: IOT_TOKEN diisi dengan JWT yang di-sign pakai JWT_SECRET
-      # Generate dengan: node -e "console.log(require('jsonwebtoken').sign({role:'iot'}, 'kelompok3', {expiresIn:'365d'}))"
-      IOT_TOKEN: ${IOT_TOKEN}
-      MQTT_BROKER: mosquitto
-      MQTT_PORT: 1883
-    depends_on:
-      - mosquitto
-      - api-gateway
-    networks:
-      - smartcity-net
-
-  iot-simulator:
-    build:
-      context: ./iot
-      dockerfile: Dockerfile
-    container_name: smartcity-iot-simulator
-    restart: unless-stopped
-    environment:
-      MQTT_BROKER: mosquitto
-      MQTT_PORT: 1883
-      MQTT_USERNAME: iot_device
-      MQTT_PASSWORD: iot_secret
-      MQTT_INTERVAL: 30
-    depends_on:
-      - mosquitto
-    networks:
-      - smartcity-net
 
   citizen-service:
     build:
@@ -161,12 +119,14 @@ services:
       - DB_DATABASE=smartcity
       - DB_USERNAME=root
       - DB_PASSWORD=rootpass
-      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_HOST=smartcity-rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=guest
       - RABBITMQ_PASSWORD=guest
       - RABBITMQ_VHOST=/
     depends_on:
+      rabbitmq:
+        condition: service_started
       mysql:
         condition: service_healthy
       rabbitmq:
@@ -174,49 +134,7 @@ services:
     networks:
       - smartcity-net
 
-  # traffic-service:
-  #   build:
-  #     context: ./php-traffic
-  #     dockerfile: Dockerfile
-  #   container_name: smartcity-traffic-service
-  #   restart: always
-  #   ports:
-  #     - "8001:8001"
-  #   env_file:
-  #     - ./php-traffic/.env
-  #   depends_on:
-  #     mysql:
-  #       condition: service_healthy
-  #     rabbitmq:
-  #       condition: service_started
-  #   networks:
-  #     - smartcity-net
-
-  # FIX: env-service sebelumnya tidak ada di docker-compose — sekarang ditambahkan
-  # env-service:
-  #   build:
-  #     context: ./php-environment
-  #     dockerfile: Dockerfile
-  #   container_name: smartcity-env-service
-  #   restart: always
-  #   ports:
-  #     - "8002:8002"
-  #   environment:
-  #     - APP_ENV=local
-  #     - APP_KEY=${ENV_APP_KEY}
-  #     - APP_DEBUG=true
-  #     - DB_CONNECTION=mysql
-  #     - DB_HOST=mysql
-  #     - DB_PORT=3306
-  #     - DB_DATABASE=smartcity
-  #     - DB_USERNAME=root
-  #     - DB_PASSWORD=rootpass
-  #   depends_on:
-  #     mysql:
-  #       condition: service_healthy
-  #   networks:
-  #     - smartcity-net
-
+  
   # python-ml:
   #   build:
   #     context: ./python-ml
@@ -249,20 +167,4 @@ services:
     networks:
       - smartcity-net
 
-  traffic-service:
-    build:
-      context: ./php-traffic
-      dockerfile: Dockerfile
-    container_name: smartcity-traffic-service
-    restart: always
-    ports:
-      - "8001:8001"
-    env_file:
-      - ./php-traffic/.env
-    depends_on:
-      mysql:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_started
-    networks:
-      - smartcity-net
+  
