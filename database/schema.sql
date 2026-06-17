@@ -72,12 +72,16 @@ CREATE TABLE IF NOT EXISTS admin_accounts(
   COMMENT='Akun admin';
 
 
-CREATE TABLE IF NOT EXISTS env_sensor_readings (
+CREATE TABLE IF NOT EXISTS room_telemetry_logs (
     id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     room_id     INT UNSIGNED    NOT NULL,
     temperature DECIMAL(5, 2)       NULL COMMENT 'celsius',
     humidity    DECIMAL(5, 2)       NULL COMMENT 'percent',
     noise       DECIMAL(5, 2)       NULL COMMENT 'desibel',
+
+   
+    ml_classification_status ENUM('nyaman', 'cukup_nyaman', 'tidak_nyaman') NULL,
+    predicted_next_busy_hour INT NULL,
     created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id) 
