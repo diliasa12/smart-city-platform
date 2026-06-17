@@ -4,28 +4,21 @@
  * oleh @node-oauth/oauth2-server.
  *
  * Grant types yang didukung (sesuai spek PDF Per. 6):
- *   - password           : login citizen (username + password → token)
+ *   - password           : login admin (username + password → token)
  *   - client_credentials : komunikasi antar service / IoT device
  *   - refresh_token      : perpanjang sesi tanpa login ulang
  */
 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { v4 } = require("uuid");
 const pool = require("../config/database");
+const crypto = require("crypto");
 const {
   JWT_SECRET = "kelompok3",
   ACCESS_TOKEN_TTL = "3600", // detik
   REFRESH_TOKEN_TTL = "604800", // 7 hari
 } = process.env;
 
-// ─────────────────────────────────────────────────────────────
-// 1. CLIENT METHODS
-// ─────────────────────────────────────────────────────────────
-
-/**
- * getClient — dipanggil pertama kali untuk validasi client_id + client_secret
- */
 async function getClient(clientId, clientSecret) {
   try {
     const [rows] = await pool.execute(
@@ -83,21 +76,21 @@ async function getUserFromClient(client) {
  */
 async function getUser(username, password) {
   const [rows] = await pool.execute(
-    `SELECT id, nik, name, email, role, zone_id, is_active
-     FROM citizen_citizens
-     WHERE email = ? AND is_active = 1`,
+    `SELECT id, name, email, phone
+     FROM admin_accounts
+     WHERE email = ? `,
     [username],
   );
 
   if (!rows.length) {
     return null;
   }
-  const citizen = rows[0];
+  const admin = rows[0];
 
   // Ambil password hash secara terpisah
   const [passRows] = await pool.execute(
-    `SELECT password FROM citizen_citizens WHERE id = ?`,
-    [citizen.id],
+    `SELECT password FROM admin_accounts WHERE id = ?`,
+    [admin.id],
   );
 
   const isValid = await bcrypt.compare(password, passRows[0].password);
@@ -107,12 +100,10 @@ async function getUser(username, password) {
   }
 
   return {
-    id: citizen.id,
-    email: citizen.email,
-    name: citizen.name,
-    role: citizen.role,
-    zone_id: citizen.zone_id,
-    nik: citizen.nik,
+    id: admin.id,
+    email: admin.email,
+    name: admin.name,
+    phone: admin.phone,
   };
 }
 async function getAuthorizationCode(code) {
@@ -138,7 +129,7 @@ async function generateAccessToken(client, user, scope) {
     client_id: client.id,
     scope: scope || "read",
     type: "access_token",
-    jti: v4(),
+    jti: crypto.randomBytes(16).toString("hex"),
   };
 
   return jwt.sign(payload, JWT_SECRET, {
@@ -151,7 +142,7 @@ async function generateAccessToken(client, user, scope) {
  * generateRefreshToken — random UUID sebagai refresh token
  */
 async function generateRefreshToken(client, user, scope) {
-  return v4();
+  return crypto.randomBytes(16).toString("hex");
 }
 
 /**
@@ -162,12 +153,12 @@ async function saveToken(token, client, user) {
     await pool.execute(
       "INSERT INTO shared_oauth_tokens (client_id, user_id, access_token, refresh_token, scope, expires_at) VALUES (?, ?, ?, ?, ?, ?)",
       [
-        client.id, // client_id (berasal dari mapped id di getClient)
-        user ? user.id : null, // user_id (NULL jika grant-type client_credentials)
+        client.id,
+        user ? user.id : null,
         token.access_token || token.accessToken,
         token.refresh_token || token.refreshToken || null,
         token.scope || null,
-        token.access_token_expires_at || token.accessTokenExpiresAt, // mysql2 otomatis mengonversi JS Date ke DATETIME
+        token.access_token_expires_at || token.accessTokenExpiresAt,
       ],
     );
 

@@ -45,9 +45,6 @@ router.post(
 );
 
 // POST /oauth/introspect
-// Digunakan oleh API Gateway untuk validasi token
-// Body: token=<access_token>
-
 router.post(
   "/introspect",
   catchAsync(async (req, res) => {
@@ -98,9 +95,6 @@ router.post(
 );
 
 // POST /oauth/revoke
-// Cabut access token atau refresh token
-// Body: token=<token_value>  &  token_type_hint=access_token|refresh_token
-
 router.post(
   "/revoke",
   catchAsync(async (req, res) => {
