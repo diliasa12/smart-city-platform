@@ -8,36 +8,17 @@ dotenv.config();
 app.use(require("cors")());
 app.use(express.json());
 
-// ─── Toggle ini saat deploy ───────────────────────────
-const IS_DEV = process.env.NODE_ENV !== "production";
-// atau set manual: const IS_DEV = true;
-// ──────────────────────────────────────────────────────
-
 const deviceData = {};
 
 let connectUrl, configMqtt;
 
-if (IS_DEV) {
-  // Dev: broker publik, no TLS, no auth
-  connectUrl = "mqtt://broker.hivemq.com:1883";
-  configMqtt = {
-    clientId: "server-dev-" + Math.random().toString(16).substr(2, 8),
-    connectTimeout: 4000,
-    reconnectPeriod: 1000,
-  };
-  console.log("[MODE] Development - broker publik");
-} else {
-  // Produksi: cluster sendiri
-  connectUrl = process.env.MQTT_CONNECTION;
-  configMqtt = {
-    clientId: "server-prod-" + Math.random().toString(16).substr(2, 8),
-    connectTimeout: 4000,
-    username: process.env.USERNAME_HIVEMQ,
-    password: process.env.PASSWORD_HIVEMQ,
-    reconnectPeriod: 1000,
-  };
-  console.log("[MODE] Production - HiveMQ Cloud");
-}
+// Dev: broker publik, no TLS, no auth
+const connectUrl = "mqtt://broker.hivemq.com:1883";
+const configMqtt = {
+  clientId: "server-dev-" + Math.random().toString(16).substr(2, 8),
+  connectTimeout: 4000,
+  reconnectPeriod: 1000,
+};
 
 const mqttClient = mqtt.connect(connectUrl, configMqtt);
 
