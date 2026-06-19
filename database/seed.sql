@@ -1,653 +1,114 @@
--- ============================================================
---  SmartCity Seed Data
---  Database : smartcity
---
---  Konten:
---    • 5   shared_zones
---    • 2   shared_oauth_clients
---    • 50  citizen_citizens
---    • 20  citizen_reports       (≥ 20)
---    • 30  citizen_notifications
---    • 200 traffic_readings
---    • 15  traffic_incidents
---    • 200 env_sensor_readings
---    • 15  env_alerts
--- ============================================================
-
 USE smartcity;
 
--- Nonaktifkan FK sementara agar urutan INSERT lebih fleksibel
-SET FOREIGN_KEY_CHECKS = 0;
+-- ============================================================
+-- KELOMPOK 0: DATA INDUK (Dibutuhkan agar Foreign Key tidak Error)
+-- ============================================================
+
+-- Menambahkan Zona/Wilayah terlebih dahulu
+INSERT INTO shared_zones (id, name, city_district, coordinates, area_km2)
+VALUES (1, 'Kampus Anggrek Binus', 'Jakarta Barat', '{"type": "Polygon", "coordinates": [[[106.7818, -6.2011], [106.7828, -6.2011], [106.7828, -6.2021], [106.7818, -6.2021], [106.7818, -6.2011]]]}', 0.5000);
+
+-- Menambahkan Ruangan Terkait ke Zona 1
+INSERT INTO env_rooms (id, zone_id, room_name, capacity, device_token, is_active)
+VALUES (1, 1, 'Ruang Lab IoT Smt 3', 30, 'wokwi_token_rahasia_123', 1);
+
 
 -- ============================================================
--- 1. SHARED ZONES (5 zona)
+-- KELOMPOK 1: SEED DATA - USERS (1 Admin, 2 User Biasa)
 -- ============================================================
-INSERT INTO shared_zones (id, name, city_district, coordinates, area_km2) VALUES
-(1, 'Zona Pusat',    'Gambir',       '{"type":"Point","coordinates":[106.8272,  -6.1753]}', 12.50),
-(2, 'Zona Utara',    'Penjaringan',  '{"type":"Point","coordinates":[106.8370,  -6.1080]}', 18.75),
-(3, 'Zona Selatan',  'Kebayoran',    '{"type":"Point","coordinates":[106.7975,  -6.2615]}', 22.30),
-(4, 'Zona Timur',    'Jatinegara',   '{"type":"Point","coordinates":[106.8690,  -6.2153]}', 16.80),
-(5, 'Zona Barat',    'Kebon Jeruk',  '{"type":"Point","coordinates":[106.7653,  -6.1964]}', 14.20);
+-- Menggunakan struktur tabel tunggal 'users' yang sudah dilengkapi kolom 'role' & 'phone'
+-- Password berasal dari string 'password123' yang di-hash dengan bcryptjs (Salt Round 10)
+INSERT INTO users (id, name, email, password, phone, role)
+VALUES 
+(
+    1, 
+    'Super Admin SmartCity', 
+    'admin@smartcity.id', 
+    '$2a$10$EixzaoOcyclpSy2wU6wecu5.289ZONC6vK28M2hFvRSL/5C76P2eq', -- Hash dari 'password123'
+    '081234567890', 
+    'admin'
+),
+(
+    2, 
+    'Budi Santoso', 
+    'budi@gmail.com', 
+    '$2a$10$EixzaoOcyclpSy2wU6wecu5.289ZONC6vK28M2hFvRSL/5C76P2eq', 
+    '081299998888', 
+    'user'
+),
+(
+    3, 
+    'Siti Aminah', 
+    'siti@gmail.com', 
+    '$2a$10$EixzaoOcyclpSy2wU6wecu5.289ZONC6vK28M2hFvRSL/5C76P2eq', 
+    '081277776666', 
+    'user'
+);
+
 
 -- ============================================================
--- 2. OAUTH CLIENTS
+-- KELOMPOK 2: SEED DATA - SHARED OAUTH CLIENTS
 -- ============================================================
-INSERT INTO shared_oauth_clients (id, client_id, client_secret, grant_types, redirect_uris, description) VALUES
-(1, 'citizen-web-app',    SHA2('secret-citizen-web-2024',256),    'authorization_code,refresh_token', 'https://app.smartcity.id/callback',       'Citizen portal web app'),
-(2, 'traffic-dashboard',  SHA2('secret-traffic-dash-2024',256),   'client_credentials',               'https://traffic.smartcity.id/callback',   'Traffic monitoring dashboard'),
-(3, 'env-monitor-app',    SHA2('secret-env-monitor-2024',256),    'client_credentials',               'https://env.smartcity.id/callback',       'Environment monitoring service'),
-(4, 'admin-backoffice',   SHA2('secret-admin-bo-2024',256),       'authorization_code,refresh_token', 'https://admin.smartcity.id/callback',     'Admin back-office portal');
+INSERT INTO shared_oauth_clients (client_id, client_secret, grant_types, redirect_uris, description, is_active)
+VALUES 
+(
+    'nodejs_iot_gateway', 
+    '$2y$10$e0MYzXyDxZ266a17bK3bEeFzo1Sg8K2f689HjklMNOpQrStUvWxyZ', 
+    'client_credentials,refresh_token', 
+    'http://localhost:3000/callback', 
+    'Layanan Node.js Gateway penyerap data telemetri Wokwi', 
+    1
+),
+(
+    'laravel_web_dashboard', 
+    '$2y$10$m9XyZzWvU87654321bK3bEeFzo1Sg8K2f689HjklMNOpQrStUvWabc', 
+    'authorization_code,password,refresh_token', 
+    'http://localhost:8000/oauth/callback', 
+    'Aplikasi Web utama Laravel untuk dashboard publik customer', 
+    1
+);
+
 
 -- ============================================================
--- 3. CITIZENS (50 warga)
--- All passwords = bcrypt('Password123!') placeholder hash
+-- KELOMPOK 3: SEED DATA - SHARED OAUTH TOKENS
 -- ============================================================
-INSERT INTO citizen_citizens
-    (id, nik, name, email, phone, zone_id, role, password) VALUES
--- Zona 1 – Pusat (10 warga)
-( 1,'3171010101010001','Andi Saputra',       'andi.saputra@email.com',       '08111000001', 1, 'citizen', '$2y$10$examplehashXXXXXXXXXXXX1'),
-( 2,'3171010101010002','Budi Santoso',       'budi.santoso@email.com',       '08111000002', 1, 'citizen', '$2y$10$examplehashXXXXXXXXXXXX2'),
-( 3,'3171010101010003','Citra Dewi',         'citra.dewi@email.com',         '08111000003', 1, 'citizen', '$2y$10$examplehashXXXXXXXXXXXX3'),
-( 4,'3171010101010004','Dian Pratiwi',       'dian.pratiwi@email.com',       '08111000004', 1, 'admin',   '$2y$10$examplehashXXXXXXXXXXXX4'),
-( 5,'3171010101010005','Eko Wibowo',         'eko.wibowo@email.com',         '08111000005', 1, 'citizen', '$2y$10$examplehashXXXXXXXXXXXX5'),
-( 6,'3171010101010006','Fitri Handayani',    'fitri.handayani@email.com',    '08111000006', 1, 'citizen', '$2y$10$examplehashXXXXXXXXXXXX6'),
-( 7,'3171010101010007','Gunawan Hidayat',    'gunawan.hidayat@email.com',    '08111000007', 1, 'citizen', '$2y$10$examplehashXXXXXXXXXXXX7'),
-( 8,'3171010101010008','Hesti Rahayu',       'hesti.rahayu@email.com',       '08111000008', 1, 'citizen', '$2y$10$examplehashXXXXXXXXXXXX8'),
-( 9,'3171010101010009','Irfan Maulana',      'irfan.maulana@email.com',      '08111000009', 1, 'officer', '$2y$10$examplehashXXXXXXXXXXXX9'),
-(10,'3171010101010010','Jasmine Kusuma',     'jasmine.kusuma@email.com',     '08111000010', 1, 'citizen', '$2y$10$examplehashXXXXXXXXXXXX0'),
--- Zona 2 – Utara (10 warga)
-(11,'3175010101010011','Kurnia Putra',       'kurnia.putra@email.com',       '08122000011', 2, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXa'),
-(12,'3175010101010012','Laila Sari',         'laila.sari@email.com',         '08122000012', 2, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXb'),
-(13,'3175010101010013','Muhamad Rizki',      'muhamad.rizki@email.com',      '08122000013', 2, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXc'),
-(14,'3175010101010014','Nadia Permata',      'nadia.permata@email.com',      '08122000014', 2, 'admin',   '$2y$10$examplehashXXXXXXXXXXXXd'),
-(15,'3175010101010015','Ogi Nugraha',        'ogi.nugraha@email.com',        '08122000015', 2, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXe'),
-(16,'3175010101010016','Putri Amalia',       'putri.amalia@email.com',       '08122000016', 2, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXf'),
-(17,'3175010101010017','Qori Handoko',       'qori.handoko@email.com',       '08122000017', 2, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXg'),
-(18,'3175010101010018','Rini Sulastri',      'rini.sulastri@email.com',      '08122000018', 2, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXh'),
-(19,'3175010101010019','Surya Dinata',       'surya.dinata@email.com',       '08122000019', 2, 'officer', '$2y$10$examplehashXXXXXXXXXXXXi'),
-(20,'3175010101010020','Tika Wulandari',     'tika.wulandari@email.com',     '08122000020', 2, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXj'),
--- Zona 3 – Selatan (10 warga)
-(21,'3174010101010021','Umar Fauzi',         'umar.fauzi@email.com',         '08133000021', 3, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXk'),
-(22,'3174010101010022','Vera Indriani',      'vera.indriani@email.com',      '08133000022', 3, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXl'),
-(23,'3174010101010023','Wahyu Setiawan',     'wahyu.setiawan@email.com',     '08133000023', 3, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXm'),
-(24,'3174010101010024','Xena Puspita',       'xena.puspita@email.com',       '08133000024', 3, 'admin',   '$2y$10$examplehashXXXXXXXXXXXXn'),
-(25,'3174010101010025','Yanto Susilo',       'yanto.susilo@email.com',       '08133000025', 3, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXo'),
-(26,'3174010101010026','Zahra Melinda',      'zahra.melinda@email.com',      '08133000026', 3, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXp'),
-(27,'3174010101010027','Agus Kurniawan',     'agus.kurniawan@email.com',     '08133000027', 3, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXq'),
-(28,'3174010101010028','Bella Octavia',      'bella.octavia@email.com',      '08133000028', 3, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXr'),
-(29,'3174010101010029','Chandra Wijaya',     'chandra.wijaya@email.com',     '08133000029', 3, 'officer', '$2y$10$examplehashXXXXXXXXXXXXs'),
-(30,'3174010101010030','Dewi Lestari',       'dewi.lestari@email.com',       '08133000030', 3, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXt'),
--- Zona 4 – Timur (10 warga)
-(31,'3172010101010031','Endra Prayoga',      'endra.prayoga@email.com',      '08144000031', 4, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXu'),
-(32,'3172010101010032','Fajar Ramadhan',     'fajar.ramadhan@email.com',     '08144000032', 4, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXv'),
-(33,'3172010101010033','Gita Cahyani',       'gita.cahyani@email.com',       '08144000033', 4, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXw'),
-(34,'3172010101010034','Hafiz Aditya',       'hafiz.aditya@email.com',       '08144000034', 4, 'admin',   '$2y$10$examplehashXXXXXXXXXXXXx'),
-(35,'3172010101010035','Indah Permatasari',  'indah.permatasari@email.com',  '08144000035', 4, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXy'),
-(36,'3172010101010036','Joko Purnomo',       'joko.purnomo@email.com',       '08144000036', 4, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXz'),
-(37,'3172010101010037','Kartika Sari',       'kartika.sari@email.com',       '08144000037', 4, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXA'),
-(38,'3172010101010038','Lutfi Hakim',        'lutfi.hakim@email.com',        '08144000038', 4, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXB'),
-(39,'3172010101010039','Maya Anggraini',     'maya.anggraini@email.com',     '08144000039', 4, 'officer', '$2y$10$examplehashXXXXXXXXXXXXC'),
-(40,'3172010101010040','Niko Prasetyo',      'niko.prasetyo@email.com',      '08144000040', 4, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXD'),
--- Zona 5 – Barat (10 warga)
-(41,'3173010101010041','Olivia Santika',     'olivia.santika@email.com',     '08155000041', 5, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXE'),
-(42,'3173010101010042','Pandu Wirawan',      'pandu.wirawan@email.com',      '08155000042', 5, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXF'),
-(43,'3173010101010043','Qistina Nabila',     'qistina.nabila@email.com',     '08155000043', 5, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXG'),
-(44,'3173010101010044','Rangga Baskara',     'rangga.baskara@email.com',     '08155000044', 5, 'admin',   '$2y$10$examplehashXXXXXXXXXXXXH'),
-(45,'3173010101010045','Sari Oktaviani',     'sari.oktaviani@email.com',     '08155000045', 5, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXI'),
-(46,'3173010101010046','Teguh Prasetya',     'teguh.prasetya@email.com',     '08155000046', 5, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXJ'),
-(47,'3173010101010047','Ulfa Ramadhani',     'ulfa.ramadhani@email.com',     '08155000047', 5, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXK'),
-(48,'3173010101010048','Vino Arisandi',      'vino.arisandi@email.com',      '08155000048', 5, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXL'),
-(49,'3173010101010049','Wina Fitriani',      'wina.fitriani@email.com',      '08155000049', 5, 'officer', '$2y$10$examplehashXXXXXXXXXXXXM'),
-(50,'3173010101010050','Yusuf Hidayat',      'yusuf.hidayat@email.com',      '08155000050', 5, 'citizen', '$2y$10$examplehashXXXXXXXXXXXXN');
+INSERT INTO shared_oauth_tokens (client_id, user_id, access_token, refresh_token, scope, expires_at)
+VALUES 
+(
+    'nodejs_iot_gateway', 
+    NULL, 
+    'mock_access_token_nodejs_gateway_xyz123', 
+    'mock_refresh_token_nodejs_gateway_xyz123', 
+    'telemetry:write', 
+    DATE_ADD(NOW(), INTERVAL 30 DAY)
+),
+(
+    'laravel_web_dashboard', 
+    1, -- Terikat ke User ID 1 (Admin)
+    'mock_access_token_laravel_dashboard_abc789', 
+    'mock_refresh_token_laravel_dashboard_abc789', 
+    'telemetry:read', 
+    DATE_ADD(NOW(), INTERVAL 1 DAY)
+);
+
 
 -- ============================================================
--- 4. CITIZEN REPORTS (20 laporan)
+-- KELOMPOK 4: SEED DATA - ENV ROOM TELEMETRY LOGS (Koreksi dari env_sensor_readings)
 -- ============================================================
-INSERT INTO citizen_reports
-    (id, citizen_id, category, description, zone_id, status, resolved_at, created_at) VALUES
-( 1,  1, 'infrastructure', 'Jalan berlubang di depan Balai Kota, perlu perbaikan segera.',                  1, 'resolved',    '2024-03-15 10:00:00', '2024-03-10 08:30:00'),
-( 2,  2, 'traffic',        'Lampu merah di persimpangan Gambir mati sejak kemarin malam.',                  1, 'in_progress',  NULL,                  '2024-03-18 07:15:00'),
-( 3,  3, 'environment',    'Asap tebal dari pabrik di kawasan industri Pusat mengganggu warga.',            1, 'pending',      NULL,                  '2024-03-20 09:00:00'),
-( 4, 11, 'public_safety',  'Lampu penerangan jalan mati di Gang Pelabuhan.',                                2, 'resolved',    '2024-03-22 14:00:00', '2024-03-19 20:00:00'),
-( 5, 12, 'infrastructure', 'Saluran air tersumbat menyebabkan banjir kecil di Jl. Enggano.',                2, 'in_progress',  NULL,                  '2024-03-21 11:30:00'),
-( 6, 13, 'environment',    'Sampah menumpuk di TPS Penjaringan sudah 3 hari tidak diangkut.',               2, 'resolved',    '2024-03-25 09:00:00', '2024-03-22 08:00:00'),
-( 7, 21, 'traffic',        'Kemacetan parah di Jl. Fatmawati setiap jam sibuk, perlu rekayasa lalu lintas.',3, 'pending',      NULL,                  '2024-03-25 07:45:00'),
-( 8, 22, 'infrastructure', 'Trotoar rusak di depan Mal Blok M membahayakan pejalan kaki.',                  3, 'in_progress',  NULL,                  '2024-03-26 10:00:00'),
-( 9, 23, 'public_safety',  'CCTV di area Kebayoran Baru tidak berfungsi.',                                  3, 'pending',      NULL,                  '2024-03-27 13:00:00'),
-(10, 31, 'environment',    'Kali Jatinegara tercemar, air berwarna hitam dan berbau.',                      4, 'in_progress',  NULL,                  '2024-03-28 09:30:00'),
-(11, 32, 'infrastructure', 'Jembatan penyeberangan di Jl. Bekasi Barat goyah dan berbahaya.',               4, 'resolved',    '2024-04-02 16:00:00', '2024-03-29 08:00:00'),
-(12, 33, 'traffic',        'Parkir liar di depan pasar Jatinegara menyebabkan kemacetan.',                  4, 'pending',      NULL,                  '2024-03-30 11:00:00'),
-(13, 41, 'environment',    'Pohon tumbang di Jl. Panjang akibat hujan deras, mengganggu lalu lintas.',      5, 'resolved',    '2024-04-01 12:00:00', '2024-03-31 06:30:00'),
-(14, 42, 'infrastructure', 'Lampu merah di Jl. Kebon Jeruk tidak sinkron menyebabkan antrian panjang.',     5, 'in_progress',  NULL,                  '2024-04-01 09:00:00'),
-(15, 43, 'public_safety',  'Premanisme di sekitar Terminal Kebon Jeruk meresahkan warga.',                  5, 'pending',      NULL,                  '2024-04-02 18:00:00'),
-(16,  5, 'other',          'Warung PKL di trotoar depan Gambir mengganggu pejalan kaki.',                   1, 'rejected',     NULL,                  '2024-04-03 10:00:00'),
-(17, 15, 'infrastructure', 'Hydrant pemadam kebakaran di Jl. Pluit bocor.',                                 2, 'in_progress',  NULL,                  '2024-04-04 13:00:00'),
-(18, 25, 'environment',    'Asap pembakaran sampah di pemukiman Kebayoran Lama.',                           3, 'pending',      NULL,                  '2024-04-05 16:00:00'),
-(19, 35, 'traffic',        'Marka jalan di Jl. DI Panjaitan sudah pudar, tidak terbaca.',                   4, 'in_progress',  NULL,                  '2024-04-06 08:00:00'),
-(20, 45, 'infrastructure', 'Lampu taman di Taman Kebon Jeruk padam.',                                       5, 'resolved',    '2024-04-08 10:00:00', '2024-04-07 19:00:00');
+-- Disesuaikan dengan kolom asli: decibel_level, ml_classification_status, dan predicted_next_busy_hour
+INSERT INTO env_room_telemetry_logs (room_id, temperature, humidity, decibel_level, ml_classification_status, predicted_next_busy_hour, created_at)
+VALUES 
+-- Log Jam 08:00 Pagi (Sepi & Nyaman)
+(1, 23.50, 50.00, 35.50, 'nyaman', 10, DATE_SUB(NOW(), INTERVAL 4 HOUR)),
 
--- ============================================================
--- 5. CITIZEN NOTIFICATIONS (30 notifikasi)
--- ============================================================
-INSERT INTO citizen_notifications
-    (citizen_id, title, body, is_read, created_at) VALUES
-( 1, 'Laporan Anda Selesai',      'Laporan jalan berlubang di Gambir telah berhasil diperbaiki.',              1, '2024-03-15 10:05:00'),
-( 2, 'Update Laporan',            'Laporan lampu merah sedang dalam proses penanganan oleh Dishub.',           0, '2024-03-19 08:00:00'),
-( 3, 'Laporan Diterima',          'Laporan asap pabrik Anda telah diteruskan ke Dinas Lingkungan Hidup.',      1, '2024-03-20 09:05:00'),
-(11, 'Laporan Selesai',           'Lampu penerangan jalan di Gang Pelabuhan telah diperbaiki.',                1, '2024-03-22 14:10:00'),
-(12, 'Update Laporan',            'Tim Dinas PU sedang menangani saluran tersumbat di Jl. Enggano.',           0, '2024-03-22 09:00:00'),
-( 4, 'Peringatan Kualitas Udara', 'Indeks kualitas udara di Zona Pusat mencapai level Tidak Sehat.',           0, '2024-03-23 07:00:00'),
-(14, 'Peringatan Kualitas Udara', 'Indeks kualitas udara di Zona Utara mencapai level Tidak Sehat.',           1, '2024-03-23 07:01:00'),
-(24, 'Peringatan Kualitas Udara', 'Indeks kualitas udara di Zona Selatan mencapai level Tidak Sehat.',        0, '2024-03-23 07:02:00'),
-(21, 'Laporan Diterima',          'Laporan kemacetan Jl. Fatmawati sedang dikaji tim Dishub.',                 1, '2024-03-25 08:00:00'),
-(22, 'Update Laporan',            'Trotoar rusak di Blok M sedang dalam penjadwalan perbaikan.',               0, '2024-03-27 10:00:00'),
-(31, 'Update Laporan',            'Tim Dinas Lingkungan Hidup sudah mengambil sampel air Kali Jatinegara.',    1, '2024-03-29 10:00:00'),
-(32, 'Laporan Selesai',           'Jembatan penyeberangan di Jl. Bekasi Barat telah aman digunakan kembali.',  1, '2024-04-02 16:10:00'),
-(41, 'Laporan Selesai',           'Pohon tumbang di Jl. Panjang telah dibersihkan.',                           1, '2024-04-01 12:10:00'),
-(42, 'Update Laporan',            'Pengaturan lampu merah Jl. Kebon Jeruk sedang dikonfigurasi ulang.',        0, '2024-04-02 10:00:00'),
-( 1, 'Info Pemeliharaan Sistem',  'Aplikasi SmartCity akan dalam pemeliharaan Minggu 07 Apr 00:00-02:00.',     1, '2024-04-05 08:00:00'),
-( 5, 'Laporan Ditolak',           'Laporan Anda mengenai PKL tidak termasuk dalam kategori yang ditangani.',   1, '2024-04-04 09:00:00'),
-(15, 'Update Laporan',            'Hydrant bocor di Jl. Pluit sedang dalam penanganan Dinas Damkar.',          0, '2024-04-05 14:00:00'),
-(25, 'Laporan Diterima',          'Laporan pembakaran sampah diteruskan ke Satpol PP.',                        0, '2024-04-06 09:00:00'),
-(35, 'Update Laporan',            'Pengecatan ulang marka jalan di Jl. DI Panjaitan sedang dijadwalkan.',      1, '2024-04-07 08:00:00'),
-(45, 'Laporan Selesai',           'Lampu taman di Taman Kebon Jeruk telah diganti dan menyala normal.',        1, '2024-04-08 10:10:00'),
-( 6, 'Peringatan Kemacetan',      'Kemacetan tinggi terdeteksi di Zona Pusat. Pertimbangkan rute alternatif.',  0, '2024-04-09 07:30:00'),
-(16, 'Peringatan Kemacetan',      'Kemacetan tinggi terdeteksi di Zona Utara. Pertimbangkan rute alternatif.', 0, '2024-04-09 07:31:00'),
-( 9, 'Info Sistem',               'Fitur pelaporan baru telah tersedia. Coba sekarang!',                       0, '2024-04-10 08:00:00'),
-(19, 'Info Sistem',               'Fitur pelaporan baru telah tersedia. Coba sekarang!',                       1, '2024-04-10 08:01:00'),
-(29, 'Info Sistem',               'Fitur pelaporan baru telah tersedia. Coba sekarang!',                       0, '2024-04-10 08:02:00'),
-(39, 'Info Sistem',               'Fitur pelaporan baru telah tersedia. Coba sekarang!',                       1, '2024-04-10 08:03:00'),
-(49, 'Info Sistem',               'Fitur pelaporan baru telah tersedia. Coba sekarang!',                       0, '2024-04-10 08:04:00'),
-(10, 'Peringatan Banjir',         'Potensi banjir terdeteksi di area Gambir. Harap waspada.',                  1, '2024-04-11 06:00:00'),
-(20, 'Peringatan Banjir',         'Potensi banjir terdeteksi di area Penjaringan. Harap waspada.',             0, '2024-04-11 06:01:00'),
-(30, 'Peringatan Banjir',         'Potensi banjir terdeteksi di area Kebayoran. Harap waspada.',               1, '2024-04-11 06:02:00');
+-- Log Jam 09:00 Pagi (Mulai terisi)
+(1, 24.20, 52.50, 42.00, 'nyaman', 10, DATE_SUB(NOW(), INTERVAL 3 HOUR)),
 
--- ============================================================
--- 6. TRAFFIC READINGS (200 baris)
---    40 readings per zona, setiap jam dari pukul 06:00–21:00
---    selama 3 hari (2024-03-25, 2024-03-26, 2024-03-27)
--- ============================================================
-INSERT INTO traffic_readings
-    (zone_id, vehicle_density, avg_speed_kmh, incident_flag, sensor_source, recorded_at) VALUES
--- === ZONA 1 – Pusat ===
-(1, 320, 25.50, 0, 'CAM-PUSAT-01', '2024-03-25 06:00:00'),
-(1, 480, 18.30, 1, 'CAM-PUSAT-01', '2024-03-25 07:00:00'),
-(1, 610, 14.20, 1, 'CAM-PUSAT-01', '2024-03-25 08:00:00'),
-(1, 540, 17.80, 0, 'CAM-PUSAT-01', '2024-03-25 09:00:00'),
-(1, 420, 22.10, 0, 'CAM-PUSAT-01', '2024-03-25 10:00:00'),
-(1, 380, 28.40, 0, 'CAM-PUSAT-01', '2024-03-25 11:00:00'),
-(1, 510, 19.60, 1, 'CAM-PUSAT-01', '2024-03-25 12:00:00'),
-(1, 430, 23.50, 0, 'CAM-PUSAT-01', '2024-03-25 13:00:00'),
-(1, 390, 26.80, 0, 'CAM-PUSAT-01', '2024-03-25 14:00:00'),
-(1, 450, 21.30, 0, 'CAM-PUSAT-01', '2024-03-25 15:00:00'),
-(1, 580, 15.40, 1, 'CAM-PUSAT-01', '2024-03-25 16:00:00'),
-(1, 650, 12.70, 1, 'CAM-PUSAT-01', '2024-03-25 17:00:00'),
-(1, 600, 14.90, 1, 'CAM-PUSAT-01', '2024-03-25 18:00:00'),
-(1, 410, 25.60, 0, 'CAM-PUSAT-01', '2024-03-25 19:00:00'),
-(1, 280, 35.20, 0, 'CAM-PUSAT-01', '2024-03-25 20:00:00'),
-(1, 190, 45.80, 0, 'CAM-PUSAT-01', '2024-03-25 21:00:00'),
-(1, 310, 26.90, 0, 'CAM-PUSAT-01', '2024-03-26 06:00:00'),
-(1, 470, 19.10, 0, 'CAM-PUSAT-01', '2024-03-26 07:00:00'),
-(1, 620, 13.80, 1, 'CAM-PUSAT-01', '2024-03-26 08:00:00'),
-(1, 560, 16.50, 1, 'CAM-PUSAT-01', '2024-03-26 09:00:00'),
-(1, 400, 24.20, 0, 'CAM-PUSAT-01', '2024-03-26 10:00:00'),
-(1, 360, 29.70, 0, 'CAM-PUSAT-01', '2024-03-26 11:00:00'),
-(1, 490, 20.40, 0, 'CAM-PUSAT-01', '2024-03-26 12:00:00'),
-(1, 420, 23.80, 0, 'CAM-PUSAT-01', '2024-03-26 13:00:00'),
-(1, 375, 27.50, 0, 'CAM-PUSAT-01', '2024-03-26 14:00:00'),
-(1, 440, 22.60, 0, 'CAM-PUSAT-01', '2024-03-26 15:00:00'),
-(1, 570, 16.10, 1, 'CAM-PUSAT-01', '2024-03-26 16:00:00'),
-(1, 640, 13.40, 1, 'CAM-PUSAT-01', '2024-03-26 17:00:00'),
-(1, 590, 15.60, 1, 'CAM-PUSAT-01', '2024-03-26 18:00:00'),
-(1, 395, 26.30, 0, 'CAM-PUSAT-01', '2024-03-26 19:00:00'),
-(1, 265, 36.70, 0, 'CAM-PUSAT-01', '2024-03-26 20:00:00'),
-(1, 175, 47.20, 0, 'CAM-PUSAT-01', '2024-03-26 21:00:00'),
-(1, 330, 24.80, 0, 'CAM-PUSAT-01', '2024-03-27 06:00:00'),
-(1, 490, 18.60, 1, 'CAM-PUSAT-01', '2024-03-27 07:00:00'),
-(1, 595, 14.60, 1, 'CAM-PUSAT-01', '2024-03-27 08:00:00'),
-(1, 520, 18.20, 0, 'CAM-PUSAT-01', '2024-03-27 09:00:00'),
-(1, 410, 23.30, 0, 'CAM-PUSAT-01', '2024-03-27 10:00:00'),
-(1, 370, 29.10, 0, 'CAM-PUSAT-01', '2024-03-27 11:00:00'),
-(1, 500, 20.10, 0, 'CAM-PUSAT-01', '2024-03-27 12:00:00'),
-(1, 430, 22.90, 0, 'CAM-PUSAT-01', '2024-03-27 13:00:00'),
--- === ZONA 2 – Utara ===
-(2, 270, 32.10, 0, 'CAM-UTARA-01', '2024-03-25 06:00:00'),
-(2, 390, 24.50, 0, 'CAM-UTARA-01', '2024-03-25 07:00:00'),
-(2, 510, 17.30, 1, 'CAM-UTARA-01', '2024-03-25 08:00:00'),
-(2, 460, 19.80, 0, 'CAM-UTARA-01', '2024-03-25 09:00:00'),
-(2, 350, 27.60, 0, 'CAM-UTARA-01', '2024-03-25 10:00:00'),
-(2, 310, 33.20, 0, 'CAM-UTARA-01', '2024-03-25 11:00:00'),
-(2, 420, 22.40, 0, 'CAM-UTARA-01', '2024-03-25 12:00:00'),
-(2, 360, 28.90, 0, 'CAM-UTARA-01', '2024-03-25 13:00:00'),
-(2, 320, 31.50, 0, 'CAM-UTARA-01', '2024-03-25 14:00:00'),
-(2, 380, 25.70, 0, 'CAM-UTARA-01', '2024-03-25 15:00:00'),
-(2, 490, 18.90, 1, 'CAM-UTARA-01', '2024-03-25 16:00:00'),
-(2, 560, 15.30, 1, 'CAM-UTARA-01', '2024-03-25 17:00:00'),
-(2, 510, 17.60, 1, 'CAM-UTARA-01', '2024-03-25 18:00:00'),
-(2, 340, 29.40, 0, 'CAM-UTARA-01', '2024-03-25 19:00:00'),
-(2, 220, 41.20, 0, 'CAM-UTARA-01', '2024-03-25 20:00:00'),
-(2, 140, 52.80, 0, 'CAM-UTARA-01', '2024-03-25 21:00:00'),
-(2, 260, 33.40, 0, 'CAM-UTARA-01', '2024-03-26 06:00:00'),
-(2, 380, 25.10, 0, 'CAM-UTARA-01', '2024-03-26 07:00:00'),
-(2, 500, 18.00, 1, 'CAM-UTARA-01', '2024-03-26 08:00:00'),
-(2, 450, 20.30, 0, 'CAM-UTARA-01', '2024-03-26 09:00:00'),
-(2, 340, 28.50, 0, 'CAM-UTARA-01', '2024-03-26 10:00:00'),
-(2, 300, 34.70, 0, 'CAM-UTARA-01', '2024-03-26 11:00:00'),
-(2, 410, 23.10, 0, 'CAM-UTARA-01', '2024-03-26 12:00:00'),
-(2, 350, 29.60, 0, 'CAM-UTARA-01', '2024-03-26 13:00:00'),
-(2, 310, 32.80, 0, 'CAM-UTARA-01', '2024-03-26 14:00:00'),
-(2, 370, 26.40, 0, 'CAM-UTARA-01', '2024-03-26 15:00:00'),
-(2, 480, 19.50, 1, 'CAM-UTARA-01', '2024-03-26 16:00:00'),
-(2, 550, 15.90, 1, 'CAM-UTARA-01', '2024-03-26 17:00:00'),
-(2, 500, 18.20, 1, 'CAM-UTARA-01', '2024-03-26 18:00:00'),
-(2, 330, 30.10, 0, 'CAM-UTARA-01', '2024-03-26 19:00:00'),
-(2, 210, 42.60, 0, 'CAM-UTARA-01', '2024-03-26 20:00:00'),
-(2, 130, 54.30, 0, 'CAM-UTARA-01', '2024-03-26 21:00:00'),
-(2, 275, 31.90, 0, 'CAM-UTARA-01', '2024-03-27 06:00:00'),
-(2, 395, 24.00, 0, 'CAM-UTARA-01', '2024-03-27 07:00:00'),
-(2, 515, 16.80, 1, 'CAM-UTARA-01', '2024-03-27 08:00:00'),
-(2, 465, 19.30, 0, 'CAM-UTARA-01', '2024-03-27 09:00:00'),
-(2, 355, 27.00, 0, 'CAM-UTARA-01', '2024-03-27 10:00:00'),
-(2, 315, 32.50, 0, 'CAM-UTARA-01', '2024-03-27 11:00:00'),
-(2, 425, 22.00, 0, 'CAM-UTARA-01', '2024-03-27 12:00:00'),
-(2, 365, 28.30, 0, 'CAM-UTARA-01', '2024-03-27 13:00:00'),
--- === ZONA 3 – Selatan ===
-(3, 295, 30.20, 0, 'CAM-SELATAN-01', '2024-03-25 06:00:00'),
-(3, 430, 21.80, 0, 'CAM-SELATAN-01', '2024-03-25 07:00:00'),
-(3, 570, 15.90, 1, 'CAM-SELATAN-01', '2024-03-25 08:00:00'),
-(3, 500, 18.60, 1, 'CAM-SELATAN-01', '2024-03-25 09:00:00'),
-(3, 385, 26.10, 0, 'CAM-SELATAN-01', '2024-03-25 10:00:00'),
-(3, 345, 31.40, 0, 'CAM-SELATAN-01', '2024-03-25 11:00:00'),
-(3, 465, 21.00, 0, 'CAM-SELATAN-01', '2024-03-25 12:00:00'),
-(3, 400, 25.30, 0, 'CAM-SELATAN-01', '2024-03-25 13:00:00'),
-(3, 355, 29.80, 0, 'CAM-SELATAN-01', '2024-03-25 14:00:00'),
-(3, 415, 23.70, 0, 'CAM-SELATAN-01', '2024-03-25 15:00:00'),
-(3, 535, 17.20, 1, 'CAM-SELATAN-01', '2024-03-25 16:00:00'),
-(3, 610, 13.50, 1, 'CAM-SELATAN-01', '2024-03-25 17:00:00'),
-(3, 555, 16.30, 1, 'CAM-SELATAN-01', '2024-03-25 18:00:00'),
-(3, 375, 27.90, 0, 'CAM-SELATAN-01', '2024-03-25 19:00:00'),
-(3, 250, 39.40, 0, 'CAM-SELATAN-01', '2024-03-25 20:00:00'),
-(3, 165, 50.10, 0, 'CAM-SELATAN-01', '2024-03-25 21:00:00'),
-(3, 285, 31.60, 0, 'CAM-SELATAN-01', '2024-03-26 06:00:00'),
-(3, 420, 22.50, 0, 'CAM-SELATAN-01', '2024-03-26 07:00:00'),
-(3, 560, 16.40, 1, 'CAM-SELATAN-01', '2024-03-26 08:00:00'),
-(3, 490, 19.20, 1, 'CAM-SELATAN-01', '2024-03-26 09:00:00'),
-(3, 375, 26.80, 0, 'CAM-SELATAN-01', '2024-03-26 10:00:00'),
-(3, 335, 32.10, 0, 'CAM-SELATAN-01', '2024-03-26 11:00:00'),
-(3, 455, 21.70, 0, 'CAM-SELATAN-01', '2024-03-26 12:00:00'),
-(3, 390, 26.00, 0, 'CAM-SELATAN-01', '2024-03-26 13:00:00'),
-(3, 345, 30.50, 0, 'CAM-SELATAN-01', '2024-03-26 14:00:00'),
-(3, 405, 24.40, 0, 'CAM-SELATAN-01', '2024-03-26 15:00:00'),
-(3, 525, 17.80, 1, 'CAM-SELATAN-01', '2024-03-26 16:00:00'),
-(3, 600, 14.10, 1, 'CAM-SELATAN-01', '2024-03-26 17:00:00'),
-(3, 545, 16.90, 1, 'CAM-SELATAN-01', '2024-03-26 18:00:00'),
-(3, 365, 28.60, 0, 'CAM-SELATAN-01', '2024-03-26 19:00:00'),
-(3, 240, 40.90, 0, 'CAM-SELATAN-01', '2024-03-26 20:00:00'),
-(3, 155, 51.60, 0, 'CAM-SELATAN-01', '2024-03-26 21:00:00'),
-(3, 300, 29.70, 0, 'CAM-SELATAN-01', '2024-03-27 06:00:00'),
-(3, 435, 21.30, 0, 'CAM-SELATAN-01', '2024-03-27 07:00:00'),
-(3, 575, 15.40, 1, 'CAM-SELATAN-01', '2024-03-27 08:00:00'),
-(3, 505, 18.10, 1, 'CAM-SELATAN-01', '2024-03-27 09:00:00'),
-(3, 390, 25.50, 0, 'CAM-SELATAN-01', '2024-03-27 10:00:00'),
-(3, 350, 30.90, 0, 'CAM-SELATAN-01', '2024-03-27 11:00:00'),
-(3, 470, 20.50, 0, 'CAM-SELATAN-01', '2024-03-27 12:00:00'),
-(3, 405, 24.80, 0, 'CAM-SELATAN-01', '2024-03-27 13:00:00'),
--- === ZONA 4 – Timur ===
-(4, 250, 34.60, 0, 'CAM-TIMUR-01', '2024-03-25 06:00:00'),
-(4, 370, 26.20, 0, 'CAM-TIMUR-01', '2024-03-25 07:00:00'),
-(4, 490, 18.70, 1, 'CAM-TIMUR-01', '2024-03-25 08:00:00'),
-(4, 435, 21.40, 0, 'CAM-TIMUR-01', '2024-03-25 09:00:00'),
-(4, 330, 30.10, 0, 'CAM-TIMUR-01', '2024-03-25 10:00:00'),
-(4, 290, 36.50, 0, 'CAM-TIMUR-01', '2024-03-25 11:00:00'),
-(4, 400, 24.80, 0, 'CAM-TIMUR-01', '2024-03-25 12:00:00'),
-(4, 340, 31.20, 0, 'CAM-TIMUR-01', '2024-03-25 13:00:00'),
-(4, 300, 34.90, 0, 'CAM-TIMUR-01', '2024-03-25 14:00:00'),
-(4, 360, 27.80, 0, 'CAM-TIMUR-01', '2024-03-25 15:00:00'),
-(4, 470, 20.10, 1, 'CAM-TIMUR-01', '2024-03-25 16:00:00'),
-(4, 540, 16.80, 1, 'CAM-TIMUR-01', '2024-03-25 17:00:00'),
-(4, 490, 19.30, 0, 'CAM-TIMUR-01', '2024-03-25 18:00:00'),
-(4, 320, 32.40, 0, 'CAM-TIMUR-01', '2024-03-25 19:00:00'),
-(4, 200, 44.70, 0, 'CAM-TIMUR-01', '2024-03-25 20:00:00'),
-(4, 120, 57.30, 0, 'CAM-TIMUR-01', '2024-03-25 21:00:00'),
-(4, 240, 35.80, 0, 'CAM-TIMUR-01', '2024-03-26 06:00:00'),
-(4, 360, 27.00, 0, 'CAM-TIMUR-01', '2024-03-26 07:00:00'),
-(4, 480, 19.40, 1, 'CAM-TIMUR-01', '2024-03-26 08:00:00'),
-(4, 425, 22.00, 0, 'CAM-TIMUR-01', '2024-03-26 09:00:00'),
-(4, 320, 30.90, 0, 'CAM-TIMUR-01', '2024-03-26 10:00:00'),
-(4, 280, 37.20, 0, 'CAM-TIMUR-01', '2024-03-26 11:00:00'),
-(4, 390, 25.50, 0, 'CAM-TIMUR-01', '2024-03-26 12:00:00'),
-(4, 330, 32.00, 0, 'CAM-TIMUR-01', '2024-03-26 13:00:00'),
-(4, 290, 35.70, 0, 'CAM-TIMUR-01', '2024-03-26 14:00:00'),
-(4, 350, 28.50, 0, 'CAM-TIMUR-01', '2024-03-26 15:00:00'),
-(4, 460, 20.80, 1, 'CAM-TIMUR-01', '2024-03-26 16:00:00'),
-(4, 530, 17.40, 1, 'CAM-TIMUR-01', '2024-03-26 17:00:00'),
-(4, 480, 19.90, 0, 'CAM-TIMUR-01', '2024-03-26 18:00:00'),
-(4, 310, 33.10, 0, 'CAM-TIMUR-01', '2024-03-26 19:00:00'),
-(4, 190, 46.20, 0, 'CAM-TIMUR-01', '2024-03-26 20:00:00'),
-(4, 110, 58.80, 0, 'CAM-TIMUR-01', '2024-03-26 21:00:00'),
-(4, 255, 33.90, 0, 'CAM-TIMUR-01', '2024-03-27 06:00:00'),
-(4, 375, 25.70, 0, 'CAM-TIMUR-01', '2024-03-27 07:00:00'),
-(4, 495, 18.20, 1, 'CAM-TIMUR-01', '2024-03-27 08:00:00'),
-(4, 440, 20.90, 0, 'CAM-TIMUR-01', '2024-03-27 09:00:00'),
-(4, 335, 29.60, 0, 'CAM-TIMUR-01', '2024-03-27 10:00:00'),
-(4, 295, 35.90, 0, 'CAM-TIMUR-01', '2024-03-27 11:00:00'),
-(4, 405, 24.10, 0, 'CAM-TIMUR-01', '2024-03-27 12:00:00'),
-(4, 345, 30.60, 0, 'CAM-TIMUR-01', '2024-03-27 13:00:00'),
--- === ZONA 5 – Barat ===
-(5, 230, 37.80, 0, 'CAM-BARAT-01', '2024-03-25 06:00:00'),
-(5, 345, 28.60, 0, 'CAM-BARAT-01', '2024-03-25 07:00:00'),
-(5, 460, 20.30, 1, 'CAM-BARAT-01', '2024-03-25 08:00:00'),
-(5, 410, 23.10, 0, 'CAM-BARAT-01', '2024-03-25 09:00:00'),
-(5, 310, 32.70, 0, 'CAM-BARAT-01', '2024-03-25 10:00:00'),
-(5, 270, 39.20, 0, 'CAM-BARAT-01', '2024-03-25 11:00:00'),
-(5, 375, 27.40, 0, 'CAM-BARAT-01', '2024-03-25 12:00:00'),
-(5, 315, 33.60, 0, 'CAM-BARAT-01', '2024-03-25 13:00:00'),
-(5, 275, 37.10, 0, 'CAM-BARAT-01', '2024-03-25 14:00:00'),
-(5, 335, 30.50, 0, 'CAM-BARAT-01', '2024-03-25 15:00:00'),
-(5, 445, 22.40, 1, 'CAM-BARAT-01', '2024-03-25 16:00:00'),
-(5, 515, 18.10, 1, 'CAM-BARAT-01', '2024-03-25 17:00:00'),
-(5, 465, 21.00, 0, 'CAM-BARAT-01', '2024-03-25 18:00:00'),
-(5, 295, 34.80, 0, 'CAM-BARAT-01', '2024-03-25 19:00:00'),
-(5, 180, 47.30, 0, 'CAM-BARAT-01', '2024-03-25 20:00:00'),
-(5, 100, 61.50, 0, 'CAM-BARAT-01', '2024-03-25 21:00:00'),
-(5, 220, 39.10, 0, 'CAM-BARAT-01', '2024-03-26 06:00:00'),
-(5, 335, 29.40, 0, 'CAM-BARAT-01', '2024-03-26 07:00:00'),
-(5, 450, 21.00, 1, 'CAM-BARAT-01', '2024-03-26 08:00:00'),
-(5, 400, 23.80, 0, 'CAM-BARAT-01', '2024-03-26 09:00:00'),
-(5, 300, 33.50, 0, 'CAM-BARAT-01', '2024-03-26 10:00:00'),
-(5, 260, 40.10, 0, 'CAM-BARAT-01', '2024-03-26 11:00:00'),
-(5, 365, 28.20, 0, 'CAM-BARAT-01', '2024-03-26 12:00:00'),
-(5, 305, 34.40, 0, 'CAM-BARAT-01', '2024-03-26 13:00:00'),
-(5, 265, 38.00, 0, 'CAM-BARAT-01', '2024-03-26 14:00:00'),
-(5, 325, 31.20, 0, 'CAM-BARAT-01', '2024-03-26 15:00:00'),
-(5, 435, 23.10, 1, 'CAM-BARAT-01', '2024-03-26 16:00:00'),
-(5, 505, 18.80, 1, 'CAM-BARAT-01', '2024-03-26 17:00:00'),
-(5, 455, 21.70, 0, 'CAM-BARAT-01', '2024-03-26 18:00:00'),
-(5, 285, 35.50, 0, 'CAM-BARAT-01', '2024-03-26 19:00:00'),
-(5, 170, 48.90, 0, 'CAM-BARAT-01', '2024-03-26 20:00:00'),
-(5, 090, 63.10, 0, 'CAM-BARAT-01', '2024-03-26 21:00:00'),
-(5, 235, 38.00, 0, 'CAM-BARAT-01', '2024-03-27 06:00:00'),
-(5, 350, 27.90, 0, 'CAM-BARAT-01', '2024-03-27 07:00:00'),
-(5, 465, 19.80, 1, 'CAM-BARAT-01', '2024-03-27 08:00:00'),
-(5, 415, 22.60, 0, 'CAM-BARAT-01', '2024-03-27 09:00:00'),
-(5, 315, 31.90, 0, 'CAM-BARAT-01', '2024-03-27 10:00:00'),
-(5, 275, 38.60, 0, 'CAM-BARAT-01', '2024-03-27 11:00:00'),
-(5, 380, 26.80, 0, 'CAM-BARAT-01', '2024-03-27 12:00:00'),
-(5, 320, 32.90, 0, 'CAM-BARAT-01', '2024-03-27 13:00:00');
+-- Log Jam 10:00 Siang (Jam Sibuk, Bising & Mulai Gerah)
+(1, 26.80, 58.00, 65.20, 'tidak_nyaman', 11, DATE_SUB(NOW(), INTERVAL 2 HOUR)),
 
--- ============================================================
--- 7. TRAFFIC INCIDENTS (15 insiden)
--- ============================================================
-INSERT INTO traffic_incidents
-    (zone_id, type, severity, description, resolved_at, reported_at) VALUES
-(1, 'accident',     'high',     'Kecelakaan 2 kendaraan di Jl. Medan Merdeka, 1 korban luka.',               '2024-03-25 10:30:00', '2024-03-25 07:15:00'),
-(1, 'congestion',   'medium',   'Kemacetan panjang di Jl. Gajah Mada akibat proyek galian.',                 '2024-03-25 14:00:00', '2024-03-25 08:30:00'),
-(2, 'road_closure', 'high',     'Penutupan Jl. Pelabuhan utara untuk perbaikan pipa PDAM.',                  '2024-03-26 17:00:00', '2024-03-25 09:00:00'),
-(2, 'hazard',       'low',      'Material bangunan berceceran di Jl. Enggano.',                              '2024-03-25 11:00:00', '2024-03-25 09:45:00'),
-(3, 'accident',     'critical', 'Kecelakaan bus vs motor di Jl. Fatmawati, 2 korban dilarikan ke RS.',       NULL,                  '2024-03-25 12:20:00'),
-(3, 'congestion',   'high',     'Antrean panjang menuju pintu tol Lebak Bulus.',                             '2024-03-25 19:00:00', '2024-03-25 16:45:00'),
-(4, 'hazard',       'medium',   'Pohon tumbang menutupi sebagian badan jalan di Jl. Bekasi Timur.',          '2024-03-25 08:00:00', '2024-03-25 06:30:00'),
-(4, 'accident',     'medium',   'Tabrak lari di Jl. Matraman, 1 pejalan kaki terluka.',                     '2024-03-26 09:00:00', '2024-03-25 18:10:00'),
-(5, 'congestion',   'medium',   'Kemacetan di Jl. Panjang akibat kegiatan Car Free Day lokal.',              '2024-03-25 13:00:00', '2024-03-25 07:00:00'),
-(5, 'road_closure', 'low',      'Penutupan sementara Jl. Arjuna Selatan untuk acara warga.',                 '2024-03-25 22:00:00', '2024-03-25 14:00:00'),
-(1, 'congestion',   'low',      'Penumpukan kendaraan di area Bundaran HI saat jam makan siang.',            '2024-03-26 14:30:00', '2024-03-26 12:10:00'),
-(2, 'accident',     'medium',   'Senggolan antar truk di kawasan pelabuhan, jalur sebagian terblokir.',      '2024-03-26 13:00:00', '2024-03-26 10:50:00'),
-(3, 'hazard',       'high',     'Banjir setinggi 40cm merendam Jl. RS Fatmawati setelah hujan deras.',       NULL,                  '2024-03-27 05:30:00'),
-(4, 'congestion',   'medium',   'Kemacetan di simpang Jatinegara akibat pasar tumpah.',                     '2024-03-27 11:00:00', '2024-03-27 07:30:00'),
-(5, 'accident',     'low',      'Kecelakaan ringan di parkir Mal Puri Indah, tidak ada korban jiwa.',        '2024-03-27 16:00:00', '2024-03-27 14:45:00');
+-- Log Jam 11:00 Siang (Cukup Nyaman)
+(1, 25.00, 55.00, 60.10, 'cukup_nyaman', 12, DATE_SUB(NOW(), INTERVAL 1 HOUR)),
 
--- ============================================================
--- 8. ENV SENSOR READINGS (200 baris)
---    40 readings per zona, setiap jam 06:00-21:00 selama 3 hari
--- ============================================================
-INSERT INTO env_sensor_readings
-    (zone_id, pm25, pm10, no2, co, o3, temperature, humidity, sensor_id, recorded_at) VALUES
--- === ZONA 1 – Pusat ===
-(1, 45.2, 78.5,  32.1, 1.20, 28.5, 31.5, 72.3, 'ENV-PUSAT-01', '2024-03-25 06:00:00'),
-(1, 52.8, 89.3,  38.7, 1.45, 24.8, 33.2, 68.1, 'ENV-PUSAT-01', '2024-03-25 07:00:00'),
-(1, 68.4, 105.7, 52.3, 1.89, 19.2, 34.8, 65.4, 'ENV-PUSAT-01', '2024-03-25 08:00:00'),
-(1, 75.1, 118.2, 58.9, 2.10, 16.4, 35.6, 63.2, 'ENV-PUSAT-01', '2024-03-25 09:00:00'),
-(1, 62.3, 98.4,  45.6, 1.72, 22.1, 36.1, 61.8, 'ENV-PUSAT-01', '2024-03-25 10:00:00'),
-(1, 55.7, 90.1,  40.2, 1.55, 25.7, 36.8, 60.5, 'ENV-PUSAT-01', '2024-03-25 11:00:00'),
-(1, 71.8, 112.4, 55.1, 1.98, 18.3, 37.2, 59.1, 'ENV-PUSAT-01', '2024-03-25 12:00:00'),
-(1, 65.4, 102.8, 49.7, 1.80, 20.9, 37.5, 58.6, 'ENV-PUSAT-01', '2024-03-25 13:00:00'),
-(1, 58.9, 93.6,  43.8, 1.62, 23.4, 37.1, 59.8, 'ENV-PUSAT-01', '2024-03-25 14:00:00'),
-(1, 64.2, 100.5, 48.1, 1.76, 21.6, 36.4, 61.2, 'ENV-PUSAT-01', '2024-03-25 15:00:00'),
-(1, 82.5, 128.7, 63.4, 2.31, 13.8, 35.7, 62.9, 'ENV-PUSAT-01', '2024-03-25 16:00:00'),
-(1, 91.3, 142.1, 71.2, 2.58, 10.5, 34.9, 64.7, 'ENV-PUSAT-01', '2024-03-25 17:00:00'),
-(1, 85.6, 134.3, 66.8, 2.40, 12.3, 33.8, 66.5, 'ENV-PUSAT-01', '2024-03-25 18:00:00'),
-(1, 60.1, 96.4,  46.5, 1.68, 22.8, 32.5, 69.2, 'ENV-PUSAT-01', '2024-03-25 19:00:00'),
-(1, 42.7, 72.3,  29.8, 1.08, 31.4, 31.2, 71.8, 'ENV-PUSAT-01', '2024-03-25 20:00:00'),
-(1, 35.4, 61.8,  24.3, 0.89, 35.7, 30.4, 74.1, 'ENV-PUSAT-01', '2024-03-25 21:00:00'),
-(1, 44.8, 76.9,  31.5, 1.18, 29.2, 31.8, 71.6, 'ENV-PUSAT-01', '2024-03-26 06:00:00'),
-(1, 51.3, 87.4,  37.9, 1.42, 25.5, 33.5, 67.4, 'ENV-PUSAT-01', '2024-03-26 07:00:00'),
-(1, 69.1, 107.2, 53.6, 1.92, 18.8, 34.9, 64.8, 'ENV-PUSAT-01', '2024-03-26 08:00:00'),
-(1, 76.8, 120.3, 60.2, 2.15, 15.9, 35.8, 62.5, 'ENV-PUSAT-01', '2024-03-26 09:00:00'),
-(1, 63.7, 100.1, 46.9, 1.75, 21.7, 36.3, 61.1, 'ENV-PUSAT-01', '2024-03-26 10:00:00'),
-(1, 56.4, 91.8,  41.5, 1.58, 25.1, 37.0, 59.8, 'ENV-PUSAT-01', '2024-03-26 11:00:00'),
-(1, 72.5, 113.9, 56.4, 2.01, 17.9, 37.4, 58.3, 'ENV-PUSAT-01', '2024-03-26 12:00:00'),
-(1, 66.1, 104.3, 50.8, 1.83, 20.5, 37.7, 57.9, 'ENV-PUSAT-01', '2024-03-26 13:00:00'),
-(1, 59.6, 95.1,  44.9, 1.65, 23.0, 37.3, 59.1, 'ENV-PUSAT-01', '2024-03-26 14:00:00'),
-(1, 65.0, 102.0, 49.4, 1.79, 21.2, 36.6, 60.5, 'ENV-PUSAT-01', '2024-03-26 15:00:00'),
-(1, 83.2, 130.2, 64.7, 2.34, 13.4, 35.9, 62.2, 'ENV-PUSAT-01', '2024-03-26 16:00:00'),
-(1, 92.0, 143.6, 72.5, 2.61, 10.1, 35.1, 64.0, 'ENV-PUSAT-01', '2024-03-26 17:00:00'),
-(1, 86.3, 135.8, 67.9, 2.43, 11.9, 34.1, 65.8, 'ENV-PUSAT-01', '2024-03-26 18:00:00'),
-(1, 60.8, 97.9,  47.8, 1.71, 22.4, 32.8, 68.5, 'ENV-PUSAT-01', '2024-03-26 19:00:00'),
-(1, 43.4, 73.8,  30.7, 1.11, 31.0, 31.5, 71.1, 'ENV-PUSAT-01', '2024-03-26 20:00:00'),
-(1, 36.1, 63.3,  25.2, 0.92, 35.3, 30.7, 73.4, 'ENV-PUSAT-01', '2024-03-26 21:00:00'),
-(1, 46.5, 79.8,  33.2, 1.23, 28.0, 32.1, 70.9, 'ENV-PUSAT-01', '2024-03-27 06:00:00'),
-(1, 53.6, 90.9,  39.8, 1.48, 24.3, 33.8, 66.7, 'ENV-PUSAT-01', '2024-03-27 07:00:00'),
-(1, 70.0, 109.0, 54.9, 1.95, 18.4, 35.1, 64.1, 'ENV-PUSAT-01', '2024-03-27 08:00:00'),
-(1, 77.5, 121.8, 61.5, 2.18, 15.5, 36.0, 61.9, 'ENV-PUSAT-01', '2024-03-27 09:00:00'),
-(1, 64.4, 101.7, 47.5, 1.78, 21.3, 36.5, 60.4, 'ENV-PUSAT-01', '2024-03-27 10:00:00'),
-(1, 57.1, 93.5,  42.1, 1.61, 24.7, 37.2, 59.1, 'ENV-PUSAT-01', '2024-03-27 11:00:00'),
-(1, 73.2, 115.4, 57.7, 2.04, 17.5, 37.6, 57.6, 'ENV-PUSAT-01', '2024-03-27 12:00:00'),
-(1, 66.8, 105.9, 51.9, 1.86, 20.1, 37.9, 57.2, 'ENV-PUSAT-01', '2024-03-27 13:00:00'),
--- === ZONA 2 – Utara ===
-(2, 38.1, 65.4,  27.3, 0.95, 32.8, 30.8, 74.5, 'ENV-UTARA-01', '2024-03-25 06:00:00'),
-(2, 44.6, 76.8,  33.1, 1.21, 28.4, 32.4, 70.2, 'ENV-UTARA-01', '2024-03-25 07:00:00'),
-(2, 58.2, 94.7,  44.8, 1.58, 22.1, 33.9, 66.8, 'ENV-UTARA-01', '2024-03-25 08:00:00'),
-(2, 63.7, 104.1, 50.6, 1.76, 19.4, 34.7, 64.3, 'ENV-UTARA-01', '2024-03-25 09:00:00'),
-(2, 52.4, 86.5,  40.2, 1.45, 24.7, 35.2, 63.1, 'ENV-UTARA-01', '2024-03-25 10:00:00'),
-(2, 47.8, 79.3,  36.4, 1.31, 27.5, 35.8, 61.8, 'ENV-UTARA-01', '2024-03-25 11:00:00'),
-(2, 61.0, 99.8,  47.5, 1.67, 20.8, 36.3, 60.4, 'ENV-UTARA-01', '2024-03-25 12:00:00'),
-(2, 55.3, 90.6,  43.1, 1.52, 23.2, 36.6, 59.8, 'ENV-UTARA-01', '2024-03-25 13:00:00'),
-(2, 49.7, 82.4,  38.8, 1.38, 26.1, 36.2, 60.9, 'ENV-UTARA-01', '2024-03-25 14:00:00'),
-(2, 54.1, 88.9,  42.0, 1.49, 24.0, 35.5, 62.3, 'ENV-UTARA-01', '2024-03-25 15:00:00'),
-(2, 70.3, 114.5, 55.8, 1.95, 17.2, 34.8, 63.8, 'ENV-UTARA-01', '2024-03-25 16:00:00'),
-(2, 78.9, 127.6, 63.1, 2.20, 13.9, 34.0, 65.4, 'ENV-UTARA-01', '2024-03-25 17:00:00'),
-(2, 73.5, 119.3, 58.4, 2.05, 15.6, 33.1, 67.1, 'ENV-UTARA-01', '2024-03-25 18:00:00'),
-(2, 51.2, 84.7,  40.9, 1.42, 25.3, 31.9, 69.8, 'ENV-UTARA-01', '2024-03-25 19:00:00'),
-(2, 36.8, 63.1,  27.6, 1.01, 33.7, 30.7, 72.4, 'ENV-UTARA-01', '2024-03-25 20:00:00'),
-(2, 29.4, 52.7,  21.8, 0.78, 38.2, 29.9, 75.0, 'ENV-UTARA-01', '2024-03-25 21:00:00'),
-(2, 37.5, 64.2,  26.8, 0.93, 33.4, 31.1, 73.8, 'ENV-UTARA-01', '2024-03-26 06:00:00'),
-(2, 43.9, 75.5,  32.4, 1.19, 29.1, 32.7, 69.5, 'ENV-UTARA-01', '2024-03-26 07:00:00'),
-(2, 57.5, 93.4,  44.1, 1.56, 22.7, 34.2, 66.1, 'ENV-UTARA-01', '2024-03-26 08:00:00'),
-(2, 63.0, 103.0, 50.0, 1.74, 19.8, 35.0, 63.6, 'ENV-UTARA-01', '2024-03-26 09:00:00'),
-(2, 51.8, 85.2,  39.5, 1.43, 25.3, 35.5, 62.4, 'ENV-UTARA-01', '2024-03-26 10:00:00'),
-(2, 47.1, 78.0,  35.8, 1.29, 28.1, 36.1, 61.1, 'ENV-UTARA-01', '2024-03-26 11:00:00'),
-(2, 60.4, 98.7,  46.8, 1.65, 21.4, 36.6, 59.7, 'ENV-UTARA-01', '2024-03-26 12:00:00'),
-(2, 54.7, 89.4,  42.4, 1.50, 23.8, 36.9, 59.1, 'ENV-UTARA-01', '2024-03-26 13:00:00'),
-(2, 49.1, 81.2,  38.1, 1.36, 26.7, 36.5, 60.2, 'ENV-UTARA-01', '2024-03-26 14:00:00'),
-(2, 53.5, 87.7,  41.3, 1.47, 24.6, 35.8, 61.6, 'ENV-UTARA-01', '2024-03-26 15:00:00'),
-(2, 69.7, 113.4, 55.1, 1.93, 17.6, 35.1, 63.1, 'ENV-UTARA-01', '2024-03-26 16:00:00'),
-(2, 78.3, 126.5, 62.4, 2.18, 14.3, 34.3, 64.7, 'ENV-UTARA-01', '2024-03-26 17:00:00'),
-(2, 72.9, 118.2, 57.7, 2.03, 16.0, 33.4, 66.4, 'ENV-UTARA-01', '2024-03-26 18:00:00'),
-(2, 50.6, 83.6,  40.2, 1.40, 25.9, 32.2, 69.1, 'ENV-UTARA-01', '2024-03-26 19:00:00'),
-(2, 36.2, 62.0,  27.0, 0.99, 34.3, 31.0, 71.7, 'ENV-UTARA-01', '2024-03-26 20:00:00'),
-(2, 28.8, 51.6,  21.2, 0.76, 38.8, 30.2, 74.3, 'ENV-UTARA-01', '2024-03-26 21:00:00'),
-(2, 39.1, 66.8,  28.2, 0.98, 32.1, 31.4, 73.1, 'ENV-UTARA-01', '2024-03-27 06:00:00'),
-(2, 45.3, 78.1,  34.0, 1.24, 27.7, 32.9, 68.8, 'ENV-UTARA-01', '2024-03-27 07:00:00'),
-(2, 59.0, 96.0,  45.5, 1.60, 21.8, 34.5, 65.4, 'ENV-UTARA-01', '2024-03-27 08:00:00'),
-(2, 64.4, 105.2, 51.3, 1.78, 19.0, 35.3, 63.0, 'ENV-UTARA-01', '2024-03-27 09:00:00'),
-(2, 53.1, 87.8,  41.0, 1.47, 24.2, 35.8, 61.7, 'ENV-UTARA-01', '2024-03-27 10:00:00'),
-(2, 48.4, 80.7,  37.1, 1.33, 27.0, 36.4, 60.4, 'ENV-UTARA-01', '2024-03-27 11:00:00'),
-(2, 61.7, 101.3, 48.2, 1.69, 20.3, 36.9, 58.9, 'ENV-UTARA-01', '2024-03-27 12:00:00'),
-(2, 56.0, 92.1,  43.7, 1.54, 22.7, 37.2, 58.4, 'ENV-UTARA-01', '2024-03-27 13:00:00'),
--- === ZONA 3 – Selatan ===
-(3, 41.3, 70.8,  29.6, 1.04, 31.5, 31.2, 73.1, 'ENV-SELATAN-01', '2024-03-25 06:00:00'),
-(3, 48.7, 82.4,  35.8, 1.28, 27.1, 32.8, 68.9, 'ENV-SELATAN-01', '2024-03-25 07:00:00'),
-(3, 63.5, 102.1, 48.9, 1.70, 21.0, 34.3, 65.5, 'ENV-SELATAN-01', '2024-03-25 08:00:00'),
-(3, 69.8, 111.5, 55.3, 1.92, 18.2, 35.1, 63.0, 'ENV-SELATAN-01', '2024-03-25 09:00:00'),
-(3, 57.2, 92.8,  44.1, 1.57, 23.5, 35.6, 61.7, 'ENV-SELATAN-01', '2024-03-25 10:00:00'),
-(3, 51.5, 84.6,  39.6, 1.40, 26.4, 36.2, 60.4, 'ENV-SELATAN-01', '2024-03-25 11:00:00'),
-(3, 66.3, 107.2, 52.1, 1.82, 19.5, 36.7, 58.9, 'ENV-SELATAN-01', '2024-03-25 12:00:00'),
-(3, 59.8, 97.9,  47.4, 1.64, 22.0, 37.0, 58.3, 'ENV-SELATAN-01', '2024-03-25 13:00:00'),
-(3, 53.9, 88.7,  42.3, 1.49, 24.9, 36.6, 59.5, 'ENV-SELATAN-01', '2024-03-25 14:00:00'),
-(3, 58.6, 95.6,  45.6, 1.61, 22.7, 35.9, 60.9, 'ENV-SELATAN-01', '2024-03-25 15:00:00'),
-(3, 76.4, 122.8, 60.3, 2.12, 15.8, 35.2, 62.4, 'ENV-SELATAN-01', '2024-03-25 16:00:00'),
-(3, 85.7, 136.9, 68.5, 2.40, 12.4, 34.4, 64.0, 'ENV-SELATAN-01', '2024-03-25 17:00:00'),
-(3, 80.0, 128.4, 63.6, 2.24, 14.2, 33.5, 65.7, 'ENV-SELATAN-01', '2024-03-25 18:00:00'),
-(3, 55.5, 91.2,  43.8, 1.53, 24.2, 32.3, 68.3, 'ENV-SELATAN-01', '2024-03-25 19:00:00'),
-(3, 39.5, 68.0,  30.1, 1.08, 32.8, 31.1, 70.9, 'ENV-SELATAN-01', '2024-03-25 20:00:00'),
-(3, 32.0, 57.5,  24.3, 0.86, 37.4, 30.3, 73.5, 'ENV-SELATAN-01', '2024-03-25 21:00:00'),
-(3, 40.7, 69.5,  28.9, 1.01, 32.2, 31.5, 72.4, 'ENV-SELATAN-01', '2024-03-26 06:00:00'),
-(3, 47.9, 81.0,  35.1, 1.26, 27.8, 33.1, 68.2, 'ENV-SELATAN-01', '2024-03-26 07:00:00'),
-(3, 62.8, 100.8, 48.2, 1.68, 21.6, 34.6, 64.8, 'ENV-SELATAN-01', '2024-03-26 08:00:00'),
-(3, 69.1, 110.2, 54.6, 1.90, 18.8, 35.4, 62.3, 'ENV-SELATAN-01', '2024-03-26 09:00:00'),
-(3, 56.6, 91.5,  43.4, 1.55, 24.1, 35.9, 61.0, 'ENV-SELATAN-01', '2024-03-26 10:00:00'),
-(3, 50.9, 83.3,  38.9, 1.38, 27.0, 36.5, 59.7, 'ENV-SELATAN-01', '2024-03-26 11:00:00'),
-(3, 65.7, 106.1, 51.4, 1.80, 20.1, 37.0, 58.2, 'ENV-SELATAN-01', '2024-03-26 12:00:00'),
-(3, 59.2, 96.7,  46.7, 1.62, 22.6, 37.3, 57.6, 'ENV-SELATAN-01', '2024-03-26 13:00:00'),
-(3, 53.3, 87.5,  41.6, 1.47, 25.5, 36.9, 58.8, 'ENV-SELATAN-01', '2024-03-26 14:00:00'),
-(3, 58.0, 94.4,  44.9, 1.59, 23.3, 36.2, 60.2, 'ENV-SELATAN-01', '2024-03-26 15:00:00'),
-(3, 75.8, 121.7, 59.6, 2.10, 16.2, 35.5, 61.7, 'ENV-SELATAN-01', '2024-03-26 16:00:00'),
-(3, 85.1, 135.8, 67.8, 2.38, 12.8, 34.7, 63.3, 'ENV-SELATAN-01', '2024-03-26 17:00:00'),
-(3, 79.4, 127.3, 62.9, 2.22, 14.6, 33.8, 65.0, 'ENV-SELATAN-01', '2024-03-26 18:00:00'),
-(3, 54.9, 90.0,  43.1, 1.51, 24.8, 32.6, 67.6, 'ENV-SELATAN-01', '2024-03-26 19:00:00'),
-(3, 38.9, 66.9,  29.4, 1.06, 33.4, 31.4, 70.2, 'ENV-SELATAN-01', '2024-03-26 20:00:00'),
-(3, 31.4, 56.4,  23.6, 0.84, 38.0, 30.6, 72.8, 'ENV-SELATAN-01', '2024-03-26 21:00:00'),
-(3, 42.0, 71.9,  30.3, 1.06, 31.0, 31.8, 71.7, 'ENV-SELATAN-01', '2024-03-27 06:00:00'),
-(3, 49.3, 83.7,  36.5, 1.30, 26.5, 33.4, 67.5, 'ENV-SELATAN-01', '2024-03-27 07:00:00'),
-(3, 64.2, 103.4, 49.6, 1.72, 20.5, 34.9, 64.1, 'ENV-SELATAN-01', '2024-03-27 08:00:00'),
-(3, 70.5, 112.8, 56.0, 1.94, 17.6, 35.7, 61.6, 'ENV-SELATAN-01', '2024-03-27 09:00:00'),
-(3, 57.9, 94.1,  44.8, 1.59, 22.9, 36.2, 60.3, 'ENV-SELATAN-01', '2024-03-27 10:00:00'),
-(3, 52.2, 85.9,  40.3, 1.42, 25.8, 36.8, 59.0, 'ENV-SELATAN-01', '2024-03-27 11:00:00'),
-(3, 67.0, 108.5, 52.8, 1.84, 19.0, 37.3, 57.5, 'ENV-SELATAN-01', '2024-03-27 12:00:00'),
-(3, 60.5, 99.3,  48.1, 1.66, 21.4, 37.6, 57.0, 'ENV-SELATAN-01', '2024-03-27 13:00:00'),
--- === ZONA 4 – Timur ===
-(4, 35.6, 60.9,  25.4, 0.88, 34.2, 30.5, 75.3, 'ENV-TIMUR-01', '2024-03-25 06:00:00'),
-(4, 41.8, 71.5,  31.2, 1.12, 29.8, 32.1, 71.0, 'ENV-TIMUR-01', '2024-03-25 07:00:00'),
-(4, 54.7, 88.8,  42.1, 1.48, 23.4, 33.6, 67.6, 'ENV-TIMUR-01', '2024-03-25 08:00:00'),
-(4, 59.9, 97.4,  47.8, 1.64, 20.5, 34.4, 65.1, 'ENV-TIMUR-01', '2024-03-25 09:00:00'),
-(4, 49.0, 80.7,  37.7, 1.34, 26.0, 34.9, 63.8, 'ENV-TIMUR-01', '2024-03-25 10:00:00'),
-(4, 44.3, 73.5,  33.8, 1.20, 28.9, 35.5, 62.5, 'ENV-TIMUR-01', '2024-03-25 11:00:00'),
-(4, 57.1, 92.8,  44.8, 1.56, 22.1, 36.0, 61.1, 'ENV-TIMUR-01', '2024-03-25 12:00:00'),
-(4, 51.4, 84.6,  40.4, 1.41, 24.5, 36.3, 60.5, 'ENV-TIMUR-01', '2024-03-25 13:00:00'),
-(4, 46.1, 77.3,  36.1, 1.27, 27.4, 35.9, 61.6, 'ENV-TIMUR-01', '2024-03-25 14:00:00'),
-(4, 50.6, 83.4,  39.4, 1.38, 25.2, 35.2, 63.0, 'ENV-TIMUR-01', '2024-03-25 15:00:00'),
-(4, 66.1, 107.2, 52.3, 1.83, 18.0, 34.5, 64.5, 'ENV-TIMUR-01', '2024-03-25 16:00:00'),
-(4, 74.2, 119.8, 59.4, 2.08, 14.6, 33.7, 66.1, 'ENV-TIMUR-01', '2024-03-25 17:00:00'),
-(4, 69.1, 111.8, 54.9, 1.93, 16.4, 32.8, 67.8, 'ENV-TIMUR-01', '2024-03-25 18:00:00'),
-(4, 47.7, 79.6,  38.3, 1.32, 27.1, 31.6, 70.4, 'ENV-TIMUR-01', '2024-03-25 19:00:00'),
-(4, 33.5, 58.3,  25.8, 0.91, 35.6, 30.4, 73.0, 'ENV-TIMUR-01', '2024-03-25 20:00:00'),
-(4, 26.9, 48.1,  20.0, 0.70, 40.3, 29.6, 75.7, 'ENV-TIMUR-01', '2024-03-25 21:00:00'),
-(4, 35.0, 59.7,  24.8, 0.86, 34.9, 30.8, 74.6, 'ENV-TIMUR-01', '2024-03-26 06:00:00'),
-(4, 41.2, 70.3,  30.6, 1.10, 30.4, 32.4, 70.3, 'ENV-TIMUR-01', '2024-03-26 07:00:00'),
-(4, 54.1, 87.7,  41.4, 1.46, 24.0, 33.9, 66.9, 'ENV-TIMUR-01', '2024-03-26 08:00:00'),
-(4, 59.3, 96.3,  47.1, 1.62, 21.1, 34.7, 64.4, 'ENV-TIMUR-01', '2024-03-26 09:00:00'),
-(4, 48.4, 79.6,  37.0, 1.32, 26.6, 35.2, 63.1, 'ENV-TIMUR-01', '2024-03-26 10:00:00'),
-(4, 43.7, 72.4,  33.1, 1.18, 29.5, 35.8, 61.8, 'ENV-TIMUR-01', '2024-03-26 11:00:00'),
-(4, 56.5, 91.7,  44.1, 1.54, 22.7, 36.3, 60.4, 'ENV-TIMUR-01', '2024-03-26 12:00:00'),
-(4, 50.8, 83.5,  39.7, 1.39, 25.1, 36.6, 59.8, 'ENV-TIMUR-01', '2024-03-26 13:00:00'),
-(4, 45.5, 76.2,  35.4, 1.25, 28.0, 36.2, 60.9, 'ENV-TIMUR-01', '2024-03-26 14:00:00'),
-(4, 50.0, 82.3,  38.7, 1.36, 25.8, 35.5, 62.3, 'ENV-TIMUR-01', '2024-03-26 15:00:00'),
-(4, 65.5, 106.1, 51.6, 1.81, 18.4, 34.8, 63.8, 'ENV-TIMUR-01', '2024-03-26 16:00:00'),
-(4, 73.6, 118.7, 58.7, 2.06, 15.0, 34.0, 65.4, 'ENV-TIMUR-01', '2024-03-26 17:00:00'),
-(4, 68.5, 110.7, 54.2, 1.91, 16.8, 33.1, 67.1, 'ENV-TIMUR-01', '2024-03-26 18:00:00'),
-(4, 47.1, 78.5,  37.6, 1.30, 27.7, 31.9, 69.7, 'ENV-TIMUR-01', '2024-03-26 19:00:00'),
-(4, 32.9, 57.2,  25.1, 0.89, 36.2, 30.7, 72.3, 'ENV-TIMUR-01', '2024-03-26 20:00:00'),
-(4, 26.3, 47.0,  19.4, 0.68, 40.9, 29.9, 75.0, 'ENV-TIMUR-01', '2024-03-26 21:00:00'),
-(4, 36.3, 62.1,  25.9, 0.90, 33.6, 31.1, 73.9, 'ENV-TIMUR-01', '2024-03-27 06:00:00'),
-(4, 42.5, 72.9,  31.9, 1.14, 29.1, 32.7, 69.6, 'ENV-TIMUR-01', '2024-03-27 07:00:00'),
-(4, 55.4, 89.9,  42.8, 1.50, 22.8, 34.2, 66.2, 'ENV-TIMUR-01', '2024-03-27 08:00:00'),
-(4, 60.6, 98.6,  48.5, 1.66, 19.9, 35.0, 63.7, 'ENV-TIMUR-01', '2024-03-27 09:00:00'),
-(4, 49.7, 81.9,  38.4, 1.36, 25.4, 35.5, 62.4, 'ENV-TIMUR-01', '2024-03-27 10:00:00'),
-(4, 45.0, 74.8,  34.5, 1.22, 28.3, 36.1, 61.1, 'ENV-TIMUR-01', '2024-03-27 11:00:00'),
-(4, 57.8, 93.9,  45.5, 1.58, 21.5, 36.6, 59.7, 'ENV-TIMUR-01', '2024-03-27 12:00:00'),
-(4, 52.1, 85.8,  41.1, 1.43, 23.9, 36.9, 59.1, 'ENV-TIMUR-01', '2024-03-27 13:00:00'),
--- === ZONA 5 – Barat ===
-(5, 33.2, 57.4,  23.5, 0.82, 35.8, 30.2, 76.1, 'ENV-BARAT-01', '2024-03-25 06:00:00'),
-(5, 39.1, 67.3,  29.0, 1.04, 31.4, 31.8, 71.8, 'ENV-BARAT-01', '2024-03-25 07:00:00'),
-(5, 51.3, 83.5,  39.7, 1.38, 25.0, 33.3, 68.4, 'ENV-BARAT-01', '2024-03-25 08:00:00'),
-(5, 56.2, 91.7,  44.9, 1.54, 21.9, 34.1, 65.9, 'ENV-BARAT-01', '2024-03-25 09:00:00'),
-(5, 45.8, 75.8,  35.3, 1.23, 27.3, 34.6, 64.6, 'ENV-BARAT-01', '2024-03-25 10:00:00'),
-(5, 41.1, 69.2,  31.5, 1.09, 30.2, 35.2, 63.3, 'ENV-BARAT-01', '2024-03-25 11:00:00'),
-(5, 53.8, 87.4,  42.2, 1.45, 23.5, 35.7, 61.9, 'ENV-BARAT-01', '2024-03-25 12:00:00'),
-(5, 48.1, 79.5,  37.9, 1.30, 26.0, 36.0, 61.3, 'ENV-BARAT-01', '2024-03-25 13:00:00'),
-(5, 43.2, 72.4,  33.7, 1.16, 28.9, 35.6, 62.4, 'ENV-BARAT-01', '2024-03-25 14:00:00'),
-(5, 47.3, 78.2,  36.9, 1.27, 26.7, 34.9, 63.8, 'ENV-BARAT-01', '2024-03-25 15:00:00'),
-(5, 62.0, 100.6, 49.0, 1.70, 19.2, 34.2, 65.3, 'ENV-BARAT-01', '2024-03-25 16:00:00'),
-(5, 69.8, 112.9, 55.8, 1.93, 15.9, 33.4, 66.9, 'ENV-BARAT-01', '2024-03-25 17:00:00'),
-(5, 64.9, 105.0, 51.5, 1.79, 17.6, 32.5, 68.6, 'ENV-BARAT-01', '2024-03-25 18:00:00'),
-(5, 44.6, 74.6,  35.7, 1.24, 28.5, 31.3, 71.2, 'ENV-BARAT-01', '2024-03-25 19:00:00'),
-(5, 30.8, 54.1,  23.2, 0.84, 37.1, 30.1, 73.8, 'ENV-BARAT-01', '2024-03-25 20:00:00'),
-(5, 24.3, 44.2,  18.1, 0.63, 41.9, 29.3, 76.5, 'ENV-BARAT-01', '2024-03-25 21:00:00'),
-(5, 32.6, 56.2,  22.9, 0.80, 36.5, 30.5, 75.4, 'ENV-BARAT-01', '2024-03-26 06:00:00'),
-(5, 38.5, 66.1,  28.4, 1.02, 32.1, 32.1, 71.1, 'ENV-BARAT-01', '2024-03-26 07:00:00'),
-(5, 50.7, 82.4,  39.0, 1.36, 25.6, 33.6, 67.7, 'ENV-BARAT-01', '2024-03-26 08:00:00'),
-(5, 55.6, 90.6,  44.2, 1.52, 22.5, 34.4, 65.2, 'ENV-BARAT-01', '2024-03-26 09:00:00'),
-(5, 45.2, 74.7,  34.6, 1.21, 27.9, 34.9, 63.9, 'ENV-BARAT-01', '2024-03-26 10:00:00'),
-(5, 40.5, 68.1,  30.8, 1.07, 30.8, 35.5, 62.6, 'ENV-BARAT-01', '2024-03-26 11:00:00'),
-(5, 53.2, 86.3,  41.5, 1.43, 24.1, 36.0, 61.2, 'ENV-BARAT-01', '2024-03-26 12:00:00'),
-(5, 47.5, 78.4,  37.2, 1.28, 26.6, 36.3, 60.6, 'ENV-BARAT-01', '2024-03-26 13:00:00'),
-(5, 42.6, 71.3,  33.0, 1.14, 29.5, 35.9, 61.7, 'ENV-BARAT-01', '2024-03-26 14:00:00'),
-(5, 46.7, 77.1,  36.2, 1.25, 27.3, 35.2, 63.1, 'ENV-BARAT-01', '2024-03-26 15:00:00'),
-(5, 61.4, 99.5,  48.3, 1.68, 19.6, 34.5, 64.6, 'ENV-BARAT-01', '2024-03-26 16:00:00'),
-(5, 69.2, 111.8, 55.1, 1.91, 16.3, 33.7, 66.2, 'ENV-BARAT-01', '2024-03-26 17:00:00'),
-(5, 64.3, 103.9, 50.8, 1.77, 18.0, 32.8, 67.9, 'ENV-BARAT-01', '2024-03-26 18:00:00'),
-(5, 44.0, 73.5,  35.0, 1.22, 29.1, 31.6, 70.5, 'ENV-BARAT-01', '2024-03-26 19:00:00'),
-(5, 30.2, 53.0,  22.6, 0.82, 37.7, 30.4, 73.1, 'ENV-BARAT-01', '2024-03-26 20:00:00'),
-(5, 23.7, 43.1,  17.5, 0.61, 42.5, 29.6, 75.8, 'ENV-BARAT-01', '2024-03-26 21:00:00'),
-(5, 33.9, 58.5,  24.2, 0.84, 34.9, 30.8, 74.7, 'ENV-BARAT-01', '2024-03-27 06:00:00'),
-(5, 39.8, 68.6,  29.7, 1.06, 30.7, 32.4, 70.4, 'ENV-BARAT-01', '2024-03-27 07:00:00'),
-(5, 52.0, 84.7,  40.4, 1.40, 24.3, 33.9, 67.0, 'ENV-BARAT-01', '2024-03-27 08:00:00'),
-(5, 56.9, 92.9,  45.6, 1.56, 21.3, 34.7, 64.5, 'ENV-BARAT-01', '2024-03-27 09:00:00'),
-(5, 46.5, 76.9,  35.9, 1.25, 26.7, 35.2, 63.2, 'ENV-BARAT-01', '2024-03-27 10:00:00'),
-(5, 41.8, 70.3,  32.1, 1.11, 29.6, 35.8, 61.9, 'ENV-BARAT-01', '2024-03-27 11:00:00'),
-(5, 54.5, 88.5,  42.9, 1.47, 22.9, 36.3, 60.5, 'ENV-BARAT-01', '2024-03-27 12:00:00'),
-(5, 48.8, 80.6,  38.6, 1.32, 25.4, 36.6, 59.9, 'ENV-BARAT-01', '2024-03-27 13:00:00');
-
--- ============================================================
--- 9. ENV ALERTS (15 peringatan)
--- ============================================================
-INSERT INTO env_alerts
-    (zone_id, alert_type, severity, value, threshold, message, resolved_at, created_at) VALUES
-(1, 'pm25',        'danger',   91.30, 75.00, 'PM2.5 melewati ambang batas bahaya di Zona Pusat.',                              '2024-03-25 20:00:00', '2024-03-25 17:00:00'),
-(1, 'pm10',        'warning',  142.10, 100.00,'PM10 melebihi batas normal di Zona Pusat.',                                    '2024-03-25 20:30:00', '2024-03-25 17:00:00'),
-(2, 'pm25',        'warning',  78.90, 75.00, 'PM2.5 mendekati ambang batas di Zona Utara.',                                   '2024-03-25 19:00:00', '2024-03-25 17:00:00'),
-(3, 'pm25',        'danger',   85.70, 75.00, 'PM2.5 melewati ambang batas di Zona Selatan.',                                  '2024-03-25 20:00:00', '2024-03-25 17:00:00'),
-(3, 'no2',         'warning',  68.50, 60.00, 'Kadar NO2 melebihi batas aman di Zona Selatan.',                               '2024-03-25 21:00:00', '2024-03-25 17:00:00'),
-(4, 'pm25',        'info',     74.20, 75.00, 'PM2.5 mendekati batas, pemantauan ditingkatkan di Zona Timur.',                 '2024-03-25 20:00:00', '2024-03-25 17:00:00'),
-(5, 'pm25',        'info',     69.80, 75.00, 'PM2.5 dalam batas wajar namun meningkat di Zona Barat.',                       '2024-03-25 20:00:00', '2024-03-25 17:00:00'),
-(1, 'temperature', 'warning',  37.50, 37.00, 'Suhu udara melebihi batas normal, risiko heat stress di Zona Pusat.',           '2024-03-26 15:00:00', '2024-03-26 12:00:00'),
-(2, 'pm25',        'danger',   78.30, 75.00, 'PM2.5 kembali melewati batas di Zona Utara.',                                  '2024-03-26 20:00:00', '2024-03-26 17:00:00'),
-(3, 'pm25',        'danger',   85.10, 75.00, 'PM2.5 melewati ambang batas di Zona Selatan untuk hari kedua berturut-turut.', NULL,                  '2024-03-26 17:00:00'),
-(3, 'humidity',    'info',     57.60, 60.00, 'Kelembaban udara di bawah batas minimum, risiko iritasi saluran napas.',       '2024-03-26 20:00:00', '2024-03-26 12:00:00'),
-(4, 'co',          'warning',  2.08, 2.00,  'Kadar CO melewati batas aman di Zona Timur.',                                   '2024-03-26 20:00:00', '2024-03-26 17:00:00'),
-(1, 'pm25',        'critical', 92.00, 75.00, 'PM2.5 mencapai level KRITIS! Warga disarankan tidak beraktivitas di luar.',    NULL,                  '2024-03-26 17:00:00'),
-(5, 'pm25',        'warning',  69.20, 65.00, 'PM2.5 di atas normal di Zona Barat.',                                         NULL,                  '2024-03-27 12:00:00'),
-(2, 'o3',          'info',     17.20, 20.00, 'Kadar ozon (O3) di bawah batas sehat di Zona Utara.',                         '2024-03-25 20:00:00', '2024-03-25 16:00:00');
-
--- Aktifkan kembali FK check
-SET FOREIGN_KEY_CHECKS = 1;
-
--- ============================================================
--- SELESAI  –  seed.sql
--- Verifikasi jumlah baris:
---   SELECT 'shared_zones'          AS tabel, COUNT(*) AS jumlah FROM shared_zones
---   UNION ALL
---   SELECT 'citizen_citizens',              COUNT(*) FROM citizen_citizens
---   UNION ALL
---   SELECT 'citizen_reports',               COUNT(*) FROM citizen_reports
---   UNION ALL
---   SELECT 'citizen_notifications',         COUNT(*) FROM citizen_notifications
---   UNION ALL
---   SELECT 'traffic_readings',              COUNT(*) FROM traffic_readings
---   UNION ALL
---   SELECT 'traffic_incidents',             COUNT(*) FROM traffic_incidents
---   UNION ALL
---   SELECT 'env_sensor_readings',           COUNT(*) FROM env_sensor_readings
---   UNION ALL
---   SELECT 'env_alerts',                    COUNT(*) FROM env_alerts;
--- ============================================================
+-- Log Kondisi Sekarang / Real-time
+(1, 24.50, 53.00, 45.00, 'nyaman', 13, NOW());

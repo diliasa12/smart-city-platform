@@ -8,54 +8,43 @@ const db = require("../config/database");
 const Router = require("express");
 const router = Router();
 
-// ─────────────────────────────────────────────────────────────
 // POST /oauth/token
-// ─────────────────────────────────────────────────────────────
 // Grant types:
 //   grant_type=password            → citizen login (email + password)
 //   grant_type=client_credentials  → service/IoT (client_id + client_secret)
 //   grant_type=refresh_token       → perpanjang sesi
-// ─────────────────────────────────────────────────────────────
+
 router.post(
   "/token",
   catchAsync(async (req, res) => {
     const oauthRequest = new Request(req);
     const oauthResponse = new Response(res);
 
-    const token = await oauth.token(oauthRequest, oauthResponse, {
-      requireClientAuthentication: {
-        password: false,
-        refresh_token: false,
-        client_credentials: true,
-      },
-    });
+    await oauth.token(oauthRequest, oauthResponse);
 
-    return res.status(200).json(
-      apiResponse(
-        200,
-        {
-          access_token: token.accessToken,
-          token_type: "Bearer",
-          expires_in: Math.floor(
-            (token.accessTokenExpiresAt - Date.now()) / 1000,
-          ),
-          refresh_token: token.refreshToken || undefined,
-          refresh_token_expires_in: token.refreshToken
-            ? parseInt(process.env.REFRESH_TOKEN_TTL || "604800")
-            : undefined,
-          scope: token.scope,
-        },
-        "Token berhasil diterbitkan",
-      ),
-    );
+    let finalizedScope = oauthResponse.body.scope;
+    if (finalizedScope && Array.isArray(finalizedScope)) {
+      finalizedScope = finalizedScope.join(" ");
+    } else if (!finalizedScope) {
+      finalizedScope = null;
+    }
+
+    return res.status(200).json({
+      status: "success",
+      code: 200,
+      data: {
+        access_token: oauthResponse.body.access_token,
+        token_type: oauthResponse.body.token_type,
+        expires_in: oauthResponse.body.expires_in,
+        scope: finalizedScope,
+      },
+      message: "Token berhasil diterbitkan",
+      service: "oauth-server",
+    });
   }),
 );
 
-// ─────────────────────────────────────────────────────────────
 // POST /oauth/introspect
-// Digunakan oleh API Gateway untuk validasi token
-// Body: token=<access_token>
-// ─────────────────────────────────────────────────────────────
 router.post(
   "/introspect",
   catchAsync(async (req, res) => {
@@ -70,7 +59,6 @@ router.post(
     const tokenData = await getAccessToken(tokenValue);
 
     if (!tokenData) {
-      // RFC 7662: token tidak aktif → kembalikan { active: false }
       return res
         .status(200)
         .json(
@@ -106,11 +94,7 @@ router.post(
   }),
 );
 
-// ─────────────────────────────────────────────────────────────
 // POST /oauth/revoke
-// Cabut access token atau refresh token
-// Body: token=<token_value>  &  token_type_hint=access_token|refresh_token
-// ─────────────────────────────────────────────────────────────
 router.post(
   "/revoke",
   catchAsync(async (req, res) => {
@@ -141,9 +125,7 @@ router.post(
   }),
 );
 
-// ─────────────────────────────────────────────────────────────
 // GET /health
-// ─────────────────────────────────────────────────────────────
 router.get(
   "/health",
   catchAsync(async (req, res) => {

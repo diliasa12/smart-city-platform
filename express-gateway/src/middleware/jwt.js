@@ -3,11 +3,11 @@ const axios = require("axios");
 const { apiResponse } = require("../utils/response");
 
 const {
-  JWT_SECRET = "smartcity-super-secret-key-change-in-production",
+  JWT_SECRET = "kelompok3",
   OAUTH_URL = "http://oauth-server:3002",
   JWT_VERIFY_MODE = "local", // 'local' | 'introspect'
 } = process.env;
-// PUBLIC paths — skip JWT chec
+
 const PUBLIC_PATHS = [
   "/health",
   "/metrics",
@@ -17,7 +17,9 @@ const PUBLIC_PATHS = [
 ];
 
 async function verifyJWT(req, res, next) {
-  if (PUBLIC_PATHS.some((p) => req.path.startsWith(p))) {
+  const isPublic = PUBLIC_PATHS.some((p) => req.originalUrl.startsWith(p));
+
+  if (isPublic) {
     return next();
   }
 
@@ -47,9 +49,36 @@ async function verifyJWT(req, res, next) {
         algorithms: ["HS256", "RS256"],
       });
     }
+
     req.user = decoded;
-    req.userId = decoded.sub || decoded.user_id || decoded.id;
-    req.role = decoded.role || "citizen";
+
+    const extractedId =
+      decoded.sub || decoded.user_id || decoded.id || decoded.userid || null;
+
+    const isServiceToken =
+      decoded.role === "service" ||
+      decoded.role === "iot" ||
+      (!extractedId && !decoded.email);
+
+    if (isServiceToken) {
+      req.userId = null;
+      req.role = "service";
+    } else {
+      if (!extractedId) {
+        return res
+          .status(401)
+          .json(
+            apiResponse(
+              401,
+              null,
+              "Token tidak valid: user ID tidak ditemukan.",
+              "error",
+            ),
+          );
+      }
+      req.userId = extractedId;
+      req.role = decoded.role || "citizen";
+    }
 
     req.headers["x-user-id"] = String(req.userId || "");
     req.headers["x-user-role"] = String(req.role);
@@ -98,6 +127,7 @@ function requireRole(...roles) {
     next();
   };
 }
+
 // OAuth 2.0 Token Introspection (RFC 7662)
 async function introspectToken(token) {
   const response = await axios.post(
