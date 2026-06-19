@@ -14,7 +14,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
        $middleware->alias([
-        'oauth.admin' => \App\Http\Middleware\EnsureAdminOAuth::class,
+        'gateway.auth' => \App\Http\Middleware\GatewayAuth::class,
+        'gateway.role' => \App\Http\Middleware\GatewayRole::class,
     ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
