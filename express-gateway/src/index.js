@@ -12,15 +12,13 @@ const { verifyJWT } = require("./middleware/jwt");
 const { requestLogger } = require("./middleware/logger");
 const { errorHandler } = require("./middleware/errorHandler");
 const { apiResponse } = require("./utils/response");
-const healthRouter = require("./routes/health");
-const metricsRouter = require("./routes/metrics");
-const { metricsMiddleware } = require("./routes/metrics");
 
 const {
   PORT = 3000,
   NODE_ENV = "development",
   ML_URL = "http://python-ml:5000",
   OAUTH_URL = "http://oauth-server:3002",
+  PHP_URL = "http://php-service:8000",
 } = process.env;
 
 const app = express();
@@ -36,12 +34,9 @@ app.use(
 
 app.use(morgan(NODE_ENV === "production" ? "combined" : "dev"));
 app.use(requestLogger);
-app.use(metricsMiddleware);
 
 app.use(globalLimiter);
 
-app.use("/health", healthRouter);
-app.use("/metrics", metricsRouter);
 app.use(
   "/oauth",
   createProxyMiddleware({
@@ -53,10 +48,29 @@ app.use(
 
 app.use(verifyJWT);
 app.use(authLimiter);
-
-// Citizen Service (PHP :8000)
-
+// PHP service (8000)
+app.use(
+  "/php",
+  createProxyMiddleware({
+    changeOrigin: true,
+    target: PHP_URL,
+    pathRewrite: { "^/php": "" },
+  }),
+);
 // Python ML Service (:5000)
+app.use(
+  "/ml",
+  createProxyMiddleware({
+    target: ML_URL,
+    changeOrigin: true,
+    on: {
+      error: (err, req, res) => upstreamError(res, "python-ml", err),
+    },
+    pathRewrite: {
+      "^/ml": "",
+    },
+  }),
+);
 
 app.use((req, res) => {
   res
