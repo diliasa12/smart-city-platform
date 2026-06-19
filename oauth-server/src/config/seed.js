@@ -1,52 +1,77 @@
+/**
+ * src/config/seed.js
+ *
+ * PERBAIKAN:
+ *  - Sebelumnya INSERT ke `admin_accounts` yang tidak ada di schema.sql
+ *  - Sekarang INSERT ke `users` dengan kolom yang sesuai schema:
+ *    (id, name, email, password, phone, role)
+ *  - Menyertakan kolom `role` ('admin' / 'user') sesuai schema.sql
+ */
+
 const mysql = require("mysql2/promise");
 const bcrypt = require("bcryptjs");
 
 async function runSeeder() {
   const pool = mysql.createPool({
-    host: "localhost",
-    user: "root",
-    password: "rootpass",
-    database: "smartcity",
-    port: 3306,
+    host: process.env.DB_HOST || "localhost",
+    user: process.env.DB_USER || "root",
+    password: process.env.DB_PASS || "rootpass",
+    database: process.env.DB_NAME || "smartcity",
+    port: parseInt(process.env.DB_PORT || "3306"),
   });
 
-  // 1. Generate hash menggunakan library Bcrypt yang sama dengan internal app
   const hashedPassword = await bcrypt.hash("Password123!", 10);
 
-  console.log("Memulai seeding data warga...");
+  console.log("[Seeder] Memulai seeding data users...");
 
-  // 2. Insert data menggunakan hash yang sudah jadi
-  const admin = [
-    [
-      1,
-      "Andi Saputra",
-      "andi.saputra@email.com",
-      "08111000001",
-      hashedPassword,
-    ],
-    [
-      2,
-      "Budi Santoso",
-      "budi.santoso@email.com",
-      "08111000002",
-      hashedPassword,
-    ],
-    [3, "Citra Dewi", "citra.dewi@email.com", "08111000003", hashedPassword],
+  // Data seed sesuai schema: id, name, email, password, phone, role
+  const users = [
+    {
+      id: 1,
+      name: "Super Admin SmartCity",
+      email: "admin@smartcity.id",
+      password: hashedPassword,
+      phone: "081234567890",
+      role: "admin",
+    },
+    {
+      id: 2,
+      name: "Budi Santoso",
+      email: "budi@gmail.com",
+      password: hashedPassword,
+      phone: "081299998888",
+      role: "user",
+    },
+    {
+      id: 3,
+      name: "Siti Aminah",
+      email: "siti@gmail.com",
+      password: hashedPassword,
+      phone: "081277776666",
+      role: "user",
+    },
   ];
 
-  for (const citizen of admin) {
+  for (const u of users) {
     await pool.execute(
-      `INSERT INTO admin_accounts (id,  name, email, phone,password) 
-       VALUES (?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE password = VALUES(password)`,
-      citizen,
+      `INSERT INTO users (id, name, email, password, phone, role)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         password = VALUES(password),
+         phone    = VALUES(phone),
+         role     = VALUES(role)`,
+      [u.id, u.name, u.email, u.password, u.phone, u.role],
     );
+    console.log(`[Seeder] Upserted user: ${u.email} (${u.role})`);
   }
 
   console.log(
-    "Seeding selesai! Semua password warga sekarang otomatis match dengan Bcrypt Node.js.",
+    "[Seeder] Selesai! Semua password match dengan bcryptjs Node.js.",
   );
   await pool.end();
 }
 
-runSeeder().catch(console.error);
+runSeeder().catch((err) => {
+  console.error("[Seeder] Error:", err.message);
+  process.exit(1);
+});
