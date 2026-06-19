@@ -28,24 +28,13 @@ CREATE TABLE IF NOT EXISTS shared_zones (
     UNIQUE KEY uq_zones_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS admin_accounts (
-    id         INT UNSIGNED    NOT NULL AUTO_INCREMENT,
-    name       VARCHAR(255)    NOT NULL,
-    email      VARCHAR(255)    NOT NULL,
-    password   VARCHAR(255)    NOT NULL COMMENT 'Hashed password Bcrypt',
-    phone      VARCHAR(25)         NULL,
-    created_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id),
-    UNIQUE KEY uq_admin_email (email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 CREATE TABLE IF NOT EXISTS users (
     id         INT UNSIGNED    NOT NULL AUTO_INCREMENT,
     name       VARCHAR(255)    NOT NULL,
     email      VARCHAR(255)    NOT NULL,
     password   VARCHAR(255)    NOT NULL,
+    phone      VARCHAR(25)         NULL, -- Pindahan dari admin_accounts
+    role       ENUM('admin', 'user') NOT NULL DEFAULT 'user', -- KUNCI DI SINI
     created_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 

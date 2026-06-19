@@ -10,8 +10,6 @@ app.use(express.json());
 
 const deviceData = {};
 
-let connectUrl, configMqtt;
-
 // Dev: broker publik, no TLS, no auth
 const connectUrl = "mqtt://broker.hivemq.com:1883";
 const configMqtt = {
