@@ -1,10 +1,23 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EnvRoomController;
+use App\Http\Controllers\SeatBookingController;
+use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
-Route::apiResource('rooms', EnvRoomController::class);
+// ── KELOMPOK SEMUA USER (Asalkan Lolos Auth Gateway) ──────────────────────
+Route::middleware('gateway.auth')->group(function () {
+    
+    // Fitur booking kursi untuk user biasa
+    Route::get('bookings', [SeatBookingController::class, 'index']);
+    Route::post('bookings', [SeatBookingController::class, 'store']);
+    Route::delete('bookings/{id}', [SeatBookingController::class, 'destroy']);
+    
+    // ── KELOMPOK KHUSUS ADMIN ──────────────────────────────────────────────
+    // Cukup tumpuk dengan middleware role setelah auth
+    Route::middleware('gateway.role:admin')->group(function () {
+        
+        Route::apiResource('rooms', EnvRoomController::class);
+        
+    });
+
+});
