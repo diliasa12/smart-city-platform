@@ -6,17 +6,29 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+
 class GatewayRole
 {
-    public function handle(Request $request, Closure $next, ...$roles): Response
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
         $user = $request->user();
 
-        // Cek apakah user ada dan memiliki role yang diizinkan oleh rute
-        if (!$user || !in_array($user->role, $roles)) {
+        if (!$user) {
             return response()->json([
                 'success' => false,
-                'message' => "Akses ditolak. Anda tidak memiliki hak akses untuk halaman ini."
+                'message' => 'Akses ditolak. User tidak terautentikasi.'
+            ], 401);
+        }
+
+        $userRole = $user->role ?? null;
+
+        if (!$userRole || !in_array($userRole, $roles, true)) {
+            return response()->json([
+                'success' => false,
+                'message' => sprintf(
+                    'Akses ditolak. Role "%s" tidak memiliki izin untuk resource ini.',
+                    $userRole ?? 'unknown'
+                )
             ], 403);
         }
 
