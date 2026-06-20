@@ -1,17 +1,18 @@
-import os
 import joblib
+import os
 
-COMFORT_MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'models', 'comfort_classifier.pkl')
-BUSY_HOUR_MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'models', 'busy_hour_forecaster.pkl')
+def get_model_path(filename):
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return os.path.join(base_dir, 'models', filename)
 
 def load_comfort_model():
-    if not os.path.exists(COMFORT_MODEL_PATH):
-        raise FileNotFoundError(f"Berkas model tidak ditemukan di: {COMFORT_MODEL_PATH}")
-    return joblib.load(COMFORT_MODEL_PATH)
+    path = get_model_path('comfort_classifier.pkl')
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Berkas model tidak ditemukan di: {path}")
+    return joblib.load(path)
 
 def load_busy_hour_model():
-    # Mengembalikan None jika file belum ada agar API tidak crash saat startup
-    if not os.path.exists(BUSY_HOUR_MODEL_PATH):
-        print(f"[Warning] Model {BUSY_HOUR_MODEL_PATH} belum ada. Menggunakan mode dummy.")
-        return None
-    return joblib.load(BUSY_HOUR_MODEL_PATH)
+    path = get_model_path('busy_hour_forecaster.pkl')
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Berkas model tidak ditemukan di: {path}")
+    return joblib.load(path)

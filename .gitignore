@@ -18,6 +18,7 @@ coverage/
 *.pkl
 python-ml-service/models/
 python-ml-service/data/
+smart-city-ml-service/models/
 
 # ── IoT ──────────────────────────────────────────────────────
 iot/passwd
