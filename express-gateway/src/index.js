@@ -48,26 +48,28 @@ app.use(
 
 app.use(verifyJWT);
 app.use(authLimiter);
-// PHP service (8000)
+
+// PHP service
 app.use(
   "/php",
   createProxyMiddleware({
     changeOrigin: true,
     target: PHP_URL,
     pathRewrite: { "^/php": "" },
+    // error handler logging PHP
+    on: { error: (err, req, res) => upstreamError(res, "php-service", err) },
   }),
 );
-// Python ML Service (:5000)
+
+// ML Service
 app.use(
   "/ml",
   createProxyMiddleware({
     target: ML_URL,
     changeOrigin: true,
-    on: {
+    pathRewrite: { "^/ml": "" },
+    on: { 
       error: (err, req, res) => upstreamError(res, "python-ml", err),
-    },
-    pathRewrite: {
-      "^/ml": "",
     },
   }),
 );
