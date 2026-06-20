@@ -1,21 +1,22 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\EnvRoom;
 use App\Models\SeatBooking;
 use App\Models\RoomTelemetryLog;
-use Illuminate\Http\JsonResponse;
+use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
     /**
-     * Ringkasan dashboard admin.
-     * Menampilkan statistik dasar, status kenyamanan tiap ruangan (hasil ML),
-     * dan daftar booking terbaru.
+     * Halaman utama panel administrator.
+     * Menampilkan grafik agregasi kualitas kota dan status IoT.
+     * (sesuai spesifikasi: GET /admin/dashboard, Auth: admin)
      */
-    public function index(): JsonResponse
+    public function index(): View
     {
         // 1. Statistik ringkas
         $stats = [
@@ -67,14 +68,10 @@ class DashboardController extends Controller
                 ];
             });
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Ringkasan dashboard berhasil diambil.',
-            'data' => [
-                'stats'           => $stats,
-                'room_status'     => $roomStatus,
-                'recent_bookings' => $recentBookings,
-            ],
-        ], 200);
+        return view('admin.dashboard', [
+            'stats'           => $stats,
+            'roomStatus'      => $roomStatus,
+            'recentBookings'  => $recentBookings,
+        ]);
     }
 }

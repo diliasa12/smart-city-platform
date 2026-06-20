@@ -2,11 +2,11 @@
 
 use App\Http\Controllers\EnvRoomController;
 use App\Http\Controllers\SeatBookingController;
-use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\TelemetryController;
 use Illuminate\Support\Facades\Route;
 
-// ── SEMENTARA TANPA MIDDLEWARE — buat tes dulu (Tips Dili) ────────────────
-Route::get('admin/dashboard', [DashboardController::class, 'index']);
+// ── ENDPOINT TELEMETRY — sementara tanpa middleware buat tes dulu ─────────
+Route::post('telemetry', [TelemetryController::class, 'store']);
 
 // ── KELOMPOK SEMUA USER (Asalkan Lolos Auth Gateway) ──────────────────────
 Route::middleware('gateway.auth')->group(function () {
