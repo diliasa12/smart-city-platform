@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\EnvRoomController;
-use App\Http\Controllers\SeatBookingController;
+use App\Http\Controllers\Admin\EnvRoomController;
+use App\Http\Controllers\Users\SeatBookingController;
 use App\Http\Controllers\Admin\ZoneController;
-use App\Http\Controllers\Admin\RoomController;
+
 use Illuminate\Support\Facades\Route;
 
 
@@ -23,7 +23,7 @@ Route::post('/admin/zones', [ZoneController::class, 'store']);
 Route::get('/admin/zones/{id}', [ZoneController::class, 'show']);
 Route::put('/admin/zones/{id}', [ZoneController::class, 'update']);
 Route::delete('/admin/zones/{id}', [ZoneController::class, 'destroy']);
-        Route::apiResource('rooms', EnvRoomController::class);
+        Route::apiResource('/admin/rooms', EnvRoomController::class);
         
     });
 

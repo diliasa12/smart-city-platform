@@ -1,7 +1,7 @@
 <?php
 
-namespace App\Http\Controllers;
-
+namespace App\Http\Controllers\Admin;
+use App\Http\Controllers\Controller;
 use App\Models\EnvRoom;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -9,10 +9,7 @@ use Illuminate\Validation\Rule;
 
 class EnvRoomController extends Controller
 {
-    /**
-     * READ (Semua Data)
-     * Mengambil daftar semua ruangan beserta data zona terkait.
-     */
+    
     public function index(): JsonResponse
     {
         $rooms = EnvRoom::with('zone')->get();
@@ -24,10 +21,7 @@ class EnvRoomController extends Controller
         ], 200);
     }
 
-    /**
-     * CREATE
-     * Menyimpan data ruangan baru ke database dengan validasi ketat.
-     */
+    
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -47,10 +41,7 @@ class EnvRoomController extends Controller
         ], 201);
     }
 
-    /**
-     * READ (Spesifik Data)
-     * Mengambil detail satu ruangan berdasarkan ID.
-     */
+    
     public function show(int $id): JsonResponse
     {
         $room = EnvRoom::with('zone')->find($id);
@@ -69,10 +60,7 @@ class EnvRoomController extends Controller
         ], 200);
     }
 
-    /**
-     * UPDATE
-     * Memperbarui data ruangan berdasarkan ID dengan pengecualian unique rule untuk token sendiri.
-     */
+    
     public function update(Request $request, int $id): JsonResponse
     {
         $room = EnvRoom::find($id);
@@ -107,10 +95,7 @@ class EnvRoomController extends Controller
         ], 200);
     }
 
-    /**
-     * DELETE
-     * Menghapus data ruangan dari database.
-     */
+    
     public function destroy(int $id): JsonResponse
     {
         $room = EnvRoom::find($id);
