@@ -1,7 +1,7 @@
 <?php
 
-namespace App\Http\Controllers;
-
+namespace App\Http\Controllers\Users;
+use App\Http\Controllers\Controller;
 use App\Models\SeatBooking;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -24,11 +24,11 @@ class SeatBookingController extends Controller
     {
         $user = $request->user();
 
-        // 1. VALIDASI INPUT: Sekarang seat_numbers wajib berbentuk ARRAY
+        
         $validator = Validator::make($request->all(), [
             'room_id'        => 'required|exists:env_rooms,id',
-            'seat_numbers'   => 'required|array|min:1', // Harus array dan minimal pilih 1 kursi
-            'seat_numbers.*' => 'required|string|max:10', // Tiap item di dalam array harus string
+            'seat_numbers'   => 'required|array|min:1', 
+            'seat_numbers.*' => 'required|string|max:10', 
             'booking_date'   => 'required|date|after_or_equal:today',
             'start_time'     => 'required|date_format:H:i',
             'end_time'       => 'required|date_format:H:i|after:start_time',
@@ -38,13 +38,13 @@ class SeatBookingController extends Controller
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        // Tentukan batas awal (Senin) dan batas akhir (Minggu) berdasarkan tanggal booking
+        
         $targetDate = Carbon::parse($request->booking_date);
         $startOfWeek = $targetDate->copy()->startOfWeek()->format('Y-m-d');
         $endOfWeek = $targetDate->copy()->endOfWeek()->format('Y-m-d');
 
-        // ── VALIDASI 1: KUOTA SEMINGGU SEKALI ──
-        // Cek apakah user sudah pernah sukses booking di minggu yang sama
+        
+        
         $hasBookedThisWeek = SeatBooking::where('user_id', $user->id)
             ->whereBetween('booking_date', [$startOfWeek, $endOfWeek])
             ->where('status', '!=', 'cancelled')
@@ -57,10 +57,10 @@ class SeatBookingController extends Controller
             ], 422);
         }
 
-        // ── VALIDASI 2: ANTI BENTROK MASSAL (Menggunakan whereIn) ──
-        // Cek apakah ada kursi dari daftar yang diminta yang SUDAH TERBOOKING orang lain
+        
+        
         $takenSeats = SeatBooking::where('room_id', $request->room_id)
-            ->whereIn('seat_number', $request->seat_numbers) // Mengecek semua kursi sekaligus
+            ->whereIn('seat_number', $request->seat_numbers) 
             ->where('booking_date', $request->booking_date)
             ->where('status', '!=', 'cancelled')
             ->where(function ($query) use ($request) {
@@ -71,19 +71,19 @@ class SeatBookingController extends Controller
                             ->where('end_time', '>=', $request->end_time);
                       });
             })
-            ->pluck('seat_number') // Ambil list nomor kursi yang bentrok saja
+            ->pluck('seat_number') 
             ->toArray();
 
-        // Jika ada kursi yang sudah diambil, batalkan seluruh proses
+        
         if (!empty($takenSeats)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Booking gagal. Kursi berikut sudah di-booking orang lain: ' . implode(', ', $takenSeats)
-            ], 409); // 409 Conflict
+            ], 409); 
         }
 
-        // ── PROSES INSERT MENGGUNAKAN TRANSACTION ──
-        // Menggunakan DB::transaction agar jika salah satu kursi gagal disimpan, semuanya otomatis di-rollback
+        
+        
         $insertedBookings = DB::transaction(function () use ($user, $request) {
             $saved = [];
             foreach ($request->seat_numbers as $seat) {

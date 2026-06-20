@@ -11,11 +11,9 @@ class GatewayAuth
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // 1. Ambil header yang sudah disuntikkan oleh API Gateway
         $userId   = $request->header('X-User-Id');
         $userRole = $request->header('X-User-Role');
 
-        // Jika gateway lupa mengirimkan header penanda, tolak request
         if (!$userRole) {
             return response()->json([
                 'success' => false, 
@@ -23,7 +21,6 @@ class GatewayAuth
             ], 401);
         }
 
-        // 2. KONDISI: Jika token berupa Machine-to-Machine / Service-to-Service (Tanpa User)
         if ($userRole === 'service' || empty($userId)) {
             $serviceUser = (object) [
                 'id' => null,
@@ -34,8 +31,6 @@ class GatewayAuth
             return $next($request);
         }
 
-        // 3. KONDISI: Jika token berupa User / Admin
-        // Kita cukup mencari user di DB lokal berdasarkan ID yang dikirim Gateway
         $user = User::find($userId);
 
         if (!$user) {
@@ -45,7 +40,6 @@ class GatewayAuth
             ], 401);
         }
 
-        // Set user login ke context Laravel agar bisa dipanggil lewat $request->user()
         $request->setUserResolver(fn () => $user);
 
         return $next($request);
