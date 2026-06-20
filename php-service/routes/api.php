@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\RoomController;
 use Illuminate\Support\Facades\Route;
 
 
+<<<<<<< HEAD
 // Tanpa Middleware
 
 // Zone CRUD
@@ -24,15 +25,17 @@ Route::put('/admin/rooms/{id}', [RoomController::class, 'update']);
 Route::delete('/admin/rooms/{id}', [RoomController::class, 'destroy']);
 
 // ── KELOMPOK SEMUA USER (Asalkan Lolos Auth Gateway) ──────────────────────
+=======
+>>>>>>> ec726eefe38fd8169b5a4226d6fffa04efc09066
 Route::middleware('gateway.auth')->group(function () {
     
-    // Fitur booking kursi untuk user biasa
+    
     Route::get('bookings', [SeatBookingController::class, 'index']);
     Route::post('bookings', [SeatBookingController::class, 'store']);
     Route::delete('bookings/{id}', [SeatBookingController::class, 'destroy']);
+  
     
-    // ── KELOMPOK KHUSUS ADMIN ──────────────────────────────────────────────
-    // Cukup tumpuk dengan middleware role setelah auth
+    
     Route::middleware('gateway.role:admin')->group(function () {
         
         Route::apiResource('rooms', EnvRoomController::class);
