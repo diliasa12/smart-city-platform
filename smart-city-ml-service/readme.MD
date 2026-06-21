@@ -22,6 +22,7 @@ smart-city-ml-service/
 │   ├── train_comfort_model.py    # Training menggunakan urban_noise_levels.csv
 │   └── train_busy_hour_model.py  # Training menggunakan room_occupancy.csv
 │   └── main.py                   # Inisialisasi framework FastAPI
+├── Dockerfile                    # Konfigurasi container untuk Docker
 ├── requirements.txt              # Dependensi Python (pandas, scikit-learn, librosa, dsb)
 └── readme.MD                     # Dokumentasi servis ini
 
@@ -31,6 +32,15 @@ Servis ini kini menggunakan dataset dunia nyata untuk akurasi prediksi yang lebi
 2. Room Occupancy: Digunakan untuk memprediksi jam sibuk ruangan berdasarkan data sensor (PIR, CO2, Cahaya, Suhu).
 
 ## Langkah Instalansi & Menjalankan Lokal
+
+### Menjalankan dengan Docker (Rekomendasi)
+Servis ini sudah dikonfigurasi untuk berjalan mulus bersama servis SmartCity lainnya (Laravel, MySQL, dll) menggunakan Docker.
+1. Buka terminal dan pastikan berada di root folder proyek utama (misal: `smart-city-platform/`)
+2. Jalankan perintah eksekusi Docker:
+``` text
+docker-compose up -d --build
+
+3. Servis ML akan menyala di dalam container bernama smartcity-ml.
 
 ### Membuat Virtual Environment
 ```text
@@ -47,9 +57,9 @@ pip install -r requirements.txt
 ### Integrasi API
 1. Base URL: `http://localhost:5000`
 2. Klasifikasi Kenyamanan: POST /api/v1/analyze-comfort
-Input: 16 parameter lingkungan (suhu, kelembapan, dll).
+Input: 8 parameter lingkungan (suhu, kelembapan, dll).
 3. Prediksi Jam Sibuk: POST /api/v1/predict-busy-hour
-Input: 15 parameter sensor (suhu, cahaya, suara, CO2, PIR).
+Input: 5 parameter sensor (suhu, cahaya, suara, CO2, PIR).
 
 ### Menjalankan Server API ML
 ``` uvicorn app.main:app --reload --port 5000

@@ -20,10 +20,10 @@ df.columns = df.columns.str.strip()
 # Preprocessing
 df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S').dt.hour
 
-features = ['S1_Temp', 'S2_Temp', 'S3_Temp', 'S4_Temp', 
-            'S1_Light', 'S2_Light', 'S3_Light', 'S4_Light', 
-            'S1_Sound', 'S2_Sound', 'S3_Sound', 'S4_Sound', 
-            'S5_CO2', 'S6_PIR', 'S7_PIR']
+features = ['S1_Temp',  
+            'S1_Light', 
+            'S1_Sound',  
+            'S5_CO2', 'S6_PIR']
 
 # fitur di dataframe
 missing_features = [f for f in features if f not in df.columns]

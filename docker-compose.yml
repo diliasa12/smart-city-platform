@@ -101,3 +101,17 @@ services:
         condition: service_healthy
     networks:
       - smartcity-net
+
+  # ── MACHINE LEARNING ───────────────────────────────────────────────────────
+  python-ml:
+    build:
+      context: ./smart-city-ml-service
+      dockerfile: Dockerfile
+    container_name: smartcity-ml
+    restart: always
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./smart-city-ml-service:/app
+    networks:
+      - smartcity-net

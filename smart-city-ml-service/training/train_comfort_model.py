@@ -14,10 +14,10 @@ df['is_noisy'] = (df['decibel_level'] > 70).astype(int)
 
 # kolom fitur
 features = [
-    'temperature_c', 'humidity_%', 'wind_speed_kmh', 'precipitation_mm',
-    'traffic_density', 'near_airport', 'near_highway', 'near_construction',
-    'population_density', 'park_proximity', 'industrial_zone', 'vehicle_count',
-    'honking_events', 'public_event', 'holiday', 'school_zone'
+    'temperature_c', 'humidity_%',
+    'traffic_density',  'near_construction',
+    'population_density', 'vehicle_count',
+     'public_event', 'school_zone'
 ]
 
 X = df[features]

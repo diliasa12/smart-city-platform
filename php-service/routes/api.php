@@ -5,6 +5,10 @@ use App\Http\Controllers\SeatBookingController;
 use App\Http\Controllers\Admin\ZoneController;
 use App\Http\Controllers\Admin\RoomController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\RoomComfortController;
+
+// ENDPOINT IOT / SENSOR (Tanpa Auth Gateway)
+Route::post('/room/analyze', [RoomComfortController::class, 'analyze']);
 
 // ── KELOMPOK SEMUA USER (Wajib Lolos Auth Gateway) ──────────────────────
 Route::middleware('gateway.auth')->group(function () {

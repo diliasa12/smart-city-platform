@@ -14,23 +14,24 @@ class TelemetryRequest(BaseModel):
     audio_file_path: str 
 
 class NoiseRequest(BaseModel):
-    # 15 fitur lingkungan dari dataset urban_noise_levels.csv
+    # 8 fitur lingkungan dari dataset urban_noise_levels.csv
     temperature_c: float
     humidity_pct: float
-    wind_speed_kmh: float
-    precipitation_mm: float
     traffic_density: float
-    near_airport: int
-    near_highway: int
     near_construction: int
     population_density: float
-    park_proximity: int
-    industrial_zone: int
     vehicle_count: int
-    honking_events: int
     public_event: int
-    holiday: int
     school_zone: int
+
+# PREDIKSI OKUPANSI RUANGAN 
+class CampusRoomRequest(BaseModel):
+    # 5 fitur inti dari dataset room_occupancy.csv
+    temperature: float
+    light: float
+    sound: float
+    co2: float
+    pir: int
 
 # --- ENDPOINTS ---
 
@@ -39,10 +40,10 @@ async def analyze_comfort(request: NoiseRequest):
     try:
         # Menyusun fitur sesuai urutan saat training
         features = np.array([[
-            request.temperature_c, request.humidity_pct, request.wind_speed_kmh, request.precipitation_mm,
-            request.traffic_density, request.near_airport, request.near_highway, request.near_construction,
-            request.population_density, request.park_proximity, request.industrial_zone, request.vehicle_count,
-            request.honking_events, request.public_event, request.holiday, request.school_zone
+            request.temperature_c, request.humidity_pct, 
+            request.traffic_density, request.near_construction,
+            request.population_density, request.vehicle_count,
+            request.public_event, request.school_zone
         ]])
         
         prediction = int(comfort_model.predict(features)[0])
@@ -66,5 +67,27 @@ async def analyze_telemetry(request: TelemetryRequest):
         
         prediction = int(comfort_model.predict(mfccs_scaled)[0])
         return {"status": "success", "comfort_status": "Bising" if prediction == 1 else "Sepi"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- ENDPOINT PREDIKSI JAM SIBUK ---
+@router.post("/predict-busy-hour")
+async def predict_busy_hour(request: CampusRoomRequest):
+    try:
+        features = np.array([[
+            request.temperature, 
+            request.light, 
+            request.sound, 
+            request.co2, 
+            request.pir
+        ]])
+        
+        prediction = int(busy_hour_model.predict(features)[0])
+        
+        return {
+            "status": "success",
+            "predicted_busy_hour": prediction,
+            "message": f"Ruangan ini diprediksi paling ramai pada pukul {prediction}:00"
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
