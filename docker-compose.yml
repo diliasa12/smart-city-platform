@@ -88,8 +88,16 @@ services:
     networks:
       - smartcity-net
 
-
-  
-
-  
-  
+  php-service:
+    build: ./php-service
+    container_name: smartcity-service
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./php-service:/var/www/html
+      - /var/www/html/vendor
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - smartcity-net
