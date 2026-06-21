@@ -28,3 +28,5 @@ Route::middleware('gateway.auth')->group(function () {
     });
 
 });
+
+Route::post('/telemetry/callback', [TelemetryController::class, 'callback']);

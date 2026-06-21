@@ -3,83 +3,74 @@
 namespace App\Services;
 
 use PhpAmqpLib\Connection\AMQPStreamConnection;
+use PhpAmqpLib\Exception\AMQPProtocolChannelException;
 use PhpAmqpLib\Message\AMQPMessage;
-use Exception;
+use Illuminate\Support\Facades\Log;
 
+/**
+ * RabbitMQPublisher
+ *
+ * Bertugas publish payload telemetry ke queue `telemetry_ml_queue`
+ * agar dikonsumsi oleh ML Service (Python).
+ *
+ * Payload yang dipublish menyertakan `callback_url` agar ML Service tahu
+ * ke mana harus POST balik hasil prediksinya.
+ */
 class RabbitMQPublisher
 {
-    private ?AMQPStreamConnection $connection = null;
-    private $channel = null;
+    protected AMQPStreamConnection $connection;
+    protected $channel;
+    protected string $queueName;
 
-    /**
-     * Inisialisasi koneksi hanya saat benar-benar dibutuhkan (Lazy Connection)
-     */
-    private function connect(): void
+    public function __construct()
     {
-        if ($this->channel !== null) {
-            return;
-        }
+        $this->queueName = env('RABBITMQ_TELEMETRY_QUEUE', 'telemetry_ml_queue');
 
-        try {
-            $this->connection = new AMQPStreamConnection(
-                env('RABBITMQ_HOST', 'localhost'),
-                env('RABBITMQ_PORT', 5672),
-                env('RABBITMQ_USER', 'guest'),
-                env('RABBITMQ_PASSWORD', 'guest'),
-                env('RABBITMQ_VHOST', '/')
-            );
+        $this->connection = new AMQPStreamConnection(
+            env('RABBITMQ_HOST', 'rabbitmq'),
+            (int) env('RABBITMQ_PORT', 5672),
+            env('RABBITMQ_USER', 'guest'),
+            env('RABBITMQ_PASSWORD', 'guest'),
+        );
 
-            $this->channel = $this->connection->channel();
+        $this->channel = $this->connection->channel();
 
-            // Exchange sesuai konvensi yang sudah dipakai di proyek: city.events
-            $this->channel->exchange_declare(
-                'city.events',
-                'topic',
-                false,
-                true,
-                false
-            );
-        } catch (Exception $e) {
-            \Log::error('[RabbitMQ] Gagal konek: ' . $e->getMessage());
-            $this->channel = null;
-        }
+        // durable=true supaya queue tetap ada walau RabbitMQ restart
+        $this->channel->queue_declare($this->queueName, false, true, false, false);
     }
 
     /**
-     * Publish event ke RabbitMQ.
+     * Publish satu payload telemetry ke queue.
      *
-     * @param string $routingKey Contoh: 'telemetry.new'
-     * @param array $data Payload yang dikirim
+     * @param array $payload Harus minimal berisi log_id, room_id, dan data sensor mentah
+     * @return bool true jika berhasil dipublish
      */
-    public function publish(string $routingKey, array $data): void
+    public function publishTelemetry(array $payload): bool
     {
-        $this->connect();
-
-        if (!$this->channel) {
-            \Log::warning('[RabbitMQ] Channel tidak tersedia, skip publish: ' . $routingKey);
-            return;
-        }
-
         try {
-            $payload = json_encode($data);
-            $message = new AMQPMessage($payload, [
-                'content_type'  => 'application/json',
-                'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
-            ]);
+            $payload['callback_url'] = rtrim(env('APP_URL', 'http://php-service:8000'), '/') . '/api/telemetry/callback';
 
-            $this->channel->basic_publish(
-                $message,
-                'city.events',
-                $routingKey
+            $message = new AMQPMessage(
+                json_encode($payload, JSON_UNESCAPED_SLASHES),
+                [
+                    'content_type' => 'application/json',
+                    'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
+                ]
             );
 
-            \Log::info('[RabbitMQ] Published: ' . $routingKey);
-        } catch (Exception $e) {
-            \Log::error('[RabbitMQ] Gagal publish: ' . $e->getMessage());
+            $this->channel->basic_publish($message, '', $this->queueName);
+
+            return true;
+        } catch (AMQPProtocolChannelException $e) {
+            Log::error("[RabbitMQPublisher] Gagal publish log_id={$payload['log_id']}: {$e->getMessage()}");
+            return false;
+        } catch (\Throwable $e) {
+            Log::error("[RabbitMQPublisher] Exception saat publish: {$e->getMessage()}");
+            return false;
         }
     }
 
-    public function __destruct()
+    public function close(): void
     {
         try {
             if ($this->channel) {
@@ -88,8 +79,13 @@ class RabbitMQPublisher
             if ($this->connection) {
                 $this->connection->close();
             }
-        } catch (Exception $e) {
-            // abaikan
+        } catch (\Throwable $e) {
+            Log::warning("[RabbitMQPublisher] Gagal menutup koneksi: {$e->getMessage()}");
         }
+    }
+
+    public function __destruct()
+    {
+        $this->close();
     }
 }
