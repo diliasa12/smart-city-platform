@@ -117,3 +117,11 @@ services:
         condition: service_healthy
     networks:
       - smartcity-net
+
+  iot-service:
+    build: ./iot
+    container_name: smartcity-iot-service
+    ports:
+      - "3001:3000"
+    networks:
+      - smartcity-net
