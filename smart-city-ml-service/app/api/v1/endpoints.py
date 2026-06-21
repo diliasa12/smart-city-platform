@@ -1,33 +1,120 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+import io
 import numpy as np
 import librosa
-from app.core.model_loader import load_comfort_model
+
+from fastapi import APIRouter, HTTPException, UploadFile, File, Request
 
 router = APIRouter()
 
-model = load_comfort_model()
+# ──────────────────────────────────────────────
+# Konstanta: Peta Rekomendasi Berbasis Aturan
+# Sesuai spesifikasi: Rule-Based AI Recommendation System
+# ──────────────────────────────────────────────
+RECOMMENDATIONS = {
+    1: {
+        "iot_command": "TOGGLE_SOUND_MASKING_ON",
+        "recommendation": (
+            "Kondisi ruangan terdeteksi BISING. Sistem peredam suara (sound masking) "
+            "diaktifkan secara otomatis untuk meningkatkan kenyamanan penghuni."
+        ),
+        "comfort_status": "Bising/Ramai",
+    },
+    0: {
+        "iot_command": "TOGGLE_SOUND_MASKING_OFF",
+        "recommendation": (
+            "Kondisi ruangan TENANG dan normal. Sistem peredam suara dimatikan "
+            "untuk menghemat konsumsi energi perangkat."
+        ),
+        "comfort_status": "Sepi/Normal",
+    },
+}
 
-class TelemetryRequest(BaseModel):
-    audio_file_path: str 
 
-@router.post("/analyze-telemetry")
-async def analyze_telemetry(request: TelemetryRequest):
+# ──────────────────────────────────────────────
+# Endpoint Utama: POST /api/v1/analyze-telemetry
+# ──────────────────────────────────────────────
+@router.post(
+    "/analyze-telemetry",
+    summary="Analisis Kenyamanan Akustik Ruangan",
+    description=(
+        "Menerima file audio (WAV/MP3) dari Node.js Gateway, "
+        "mengekstrak fitur MFCC menggunakan librosa, lalu mengklasifikasikan "
+        "kondisi akustik ruangan melalui model Random Forest. "
+        "Mengembalikan hasil prediksi beserta perintah otomatisasi IoT."
+    ),
+)
+async def analyze_telemetry(
+    request: Request,
+    audio_file: UploadFile = File(
+        ...,
+        description="File audio lingkungan ruangan (format WAV atau MP3).",
+    ),
+):
+    """
+    Pipeline pemrosesan:
+    1. Baca konten file audio dari upload multipart.
+    2. Ekstrak fitur MFCC (40 koefisien) menggunakan librosa.
+    3. Rata-rata MFCC di sepanjang dimensi waktu → vektor fitur 1D (40 nilai).
+    4. Jalankan prediksi menggunakan model Random Forest dari app.state.
+    5. Kembalikan hasil klasifikasi + rekomendasi tindakan IoT.
+    """
+    # ── Ambil model dari app.state (dimuat saat startup di main.py) ──
+    model = getattr(request.app.state, "comfort_model", None)
+
+    if model is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Model klasifikasi belum dimuat. Coba lagi dalam beberapa detik.",
+        )
+
+    # ── Validasi tipe file ──
+    allowed_content_types = {"audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp3"}
+    if audio_file.content_type and audio_file.content_type not in allowed_content_types:
+        raise HTTPException(
+            status_code=415,
+            detail=f"Format file tidak didukung: '{audio_file.content_type}'. Gunakan WAV atau MP3.",
+        )
+
     try:
-        y, sr = librosa.load(request.audio_file_path)
+        # ── 1. Baca byte file audio dari upload ──
+        contents = await audio_file.read()
+        if not contents:
+            raise HTTPException(status_code=400, detail="File audio kosong atau tidak terbaca.")
+
+        # ── 2 & 3. Ekstrak fitur MFCC ──
+        # sr=None → gunakan sample rate asli file, bukan resample paksa
+        y, sr = librosa.load(io.BytesIO(contents), sr=None)
         mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
-        mfccs_scaled = np.mean(mfccs.T, axis=0).reshape(1, -1) # Reshape ke 2D untuk single sample prediction
-        
-        # (0 = Sepi/Normal, 1 = Bising/Crowd)
+
+        # Rata-rata sepanjang sumbu waktu → vektor fitur (40,) → reshape ke (1, 40)
+        mfccs_scaled = np.mean(mfccs.T, axis=0).reshape(1, -1)
+
+        # ── 4. Prediksi dengan model Random Forest ──
+        # Output: 0 (Sepi/Normal) atau 1 (Bising/Ramai)
         prediction = int(model.predict(mfccs_scaled)[0])
-        
-        status_kenyamanan = "Bising/Ramai" if prediction == 1 else "Sepi/Normal"
-        
+
+        # ── 5. Ambil rekomendasi berbasis aturan ──
+        rec = RECOMMENDATIONS[prediction]
+
         return {
             "status": "success",
             "class_result": prediction,
-            "comfort_status": status_kenyamanan
+            "comfort_status": rec["comfort_status"],
+            "iot_command": rec["iot_command"],
+            "recommendation": rec["recommendation"],
+            "metadata": {
+                "filename": audio_file.filename,
+                "sample_rate_hz": int(sr),
+                "duration_seconds": round(float(len(y) / sr), 2),
+                "mfcc_coefficients": 40,
+            },
         }
-        
+
+    except HTTPException:
+        # Re-raise HTTPException yang sudah dibentuk di atas
+        raise
     except Exception as e:
-        raise HTTPException(status_status=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=f"Kesalahan saat memproses audio: {str(e)}",
+        )
