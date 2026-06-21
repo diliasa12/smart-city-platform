@@ -1,9 +1,4 @@
-/**
- * Grant types yang didukung:
- *   - password           : login user (username + password → token)
- *   - client_credentials : komunikasi antar service / IoT device
- *   - refresh_token      : perpanjang sesi tanpa login ulang
- */
+
 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -12,13 +7,13 @@ const crypto = require("crypto");
 
 const {
   JWT_SECRET = "kelompok3",
-  ACCESS_TOKEN_TTL = "3600", // detik
-  REFRESH_TOKEN_TTL = "604800", // 7 hari
+  ACCESS_TOKEN_TTL = "3600", 
+  REFRESH_TOKEN_TTL = "604800", 
 } = process.env;
 
-// ─────────────────────────────────────────────────────────────
-// 1. CLIENT METHODS
-// ─────────────────────────────────────────────────────────────
+
+
+
 
 async function getClient(clientId, clientSecret) {
   try {
@@ -59,7 +54,7 @@ async function getClient(clientId, clientSecret) {
 
 async function getUserFromClient(client) {
   try {
-    // Machine-to-Machine: tidak ada user manusia yang login
+    
     return { id: null, username: client.id, is_client: true };
   } catch (error) {
     console.error("[OAuthModel] Error pada getUserFromClient:", error.message);
@@ -67,19 +62,11 @@ async function getUserFromClient(client) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// 2. USER METHODS (password grant)
-// ─────────────────────────────────────────────────────────────
 
-/**
- * getUser — validasi email + password menggunakan tabel `users`
- *
- * PERBAIKAN:
- *  - Sebelumnya query ke `admin_accounts` yang tidak ada di schema.sql
- *  - Sekarang query ke `users` sesuai schema.sql
- *  - Ambil `password` dan `role` dalam satu query (efisien, tidak dua round-trip)
- *  - Kembalikan `role` agar JWT payload dapat menyertakannya
- */
+
+
+
+
 async function getUser(username, password) {
   try {
     const [rows] = await pool.execute(
@@ -101,13 +88,13 @@ async function getUser(username, password) {
       return null;
     }
 
-    // Jangan kembalikan kolom password ke lapisan atas
+    
     return {
       id: user.id,
       email: user.email,
       name: user.name,
       phone: user.phone,
-      role: user.role, // 'admin' | 'user' — dibutuhkan di JWT payload
+      role: user.role, 
     };
   } catch (error) {
     console.error("[OAuthModel] Error pada getUser:", error.message);
@@ -123,24 +110,18 @@ async function revokeAuthorizationCode(code) {
   return true;
 }
 
-// ─────────────────────────────────────────────────────────────
-// 3. TOKEN METHODS
-// ─────────────────────────────────────────────────────────────
 
-/**
- * generateAccessToken — buat JWT sebagai access token
- *
- * PERBAIKAN:
- *  - `role` sekarang benar diambil dari user.role (bukan hardcode 'service')
- *    karena getUser sudah mengembalikan kolom role dari tabel users
- */
+
+
+
+
 async function generateAccessToken(client, user, scope) {
   const payload = {
     sub: user?.id || client.id,
     user_id: user?.id || null,
     email: user?.email || null,
-    // role dari DB: 'admin' atau 'user' untuk password grant,
-    // 'service' untuk client_credentials (user.is_client === true)
+    
+    
     role: user?.is_client ? "service" : user?.role || "user",
     client_id: client.id,
     scope: scope || "read",
@@ -158,9 +139,7 @@ async function generateRefreshToken(client, user, scope) {
   return crypto.randomBytes(32).toString("hex");
 }
 
-/**
- * saveToken — simpan access + refresh token ke shared_oauth_tokens
- */
+
 async function saveToken(token, client, user) {
   try {
     await pool.execute(
@@ -195,9 +174,7 @@ async function saveToken(token, client, user) {
   }
 }
 
-/**
- * getAccessToken — validasi access token (untuk introspection)
- */
+
 async function getAccessToken(accessToken) {
   try {
     const decoded = jwt.verify(accessToken, JWT_SECRET);
@@ -230,9 +207,7 @@ async function getAccessToken(accessToken) {
   }
 }
 
-/**
- * getRefreshToken — ambil refresh token dari shared_oauth_tokens
- */
+
 async function getRefreshToken(refreshToken) {
   const [rows] = await pool.execute(
     `SELECT t.*, c.grant_types
@@ -260,9 +235,7 @@ async function getRefreshToken(refreshToken) {
   };
 }
 
-/**
- * revokeToken — soft delete refresh token
- */
+
 async function revokeToken(token) {
   await pool.execute(
     `UPDATE shared_oauth_tokens
@@ -273,9 +246,9 @@ async function revokeToken(token) {
   return true;
 }
 
-// ─────────────────────────────────────────────────────────────
-// 4. SCOPE METHODS
-// ─────────────────────────────────────────────────────────────
+
+
+
 
 function verifyScope(token, scope) {
   if (!scope) return true;
@@ -290,9 +263,9 @@ function validateScope(user, client, scope) {
   return valid.length ? valid.join(" ") : false;
 }
 
-// ─────────────────────────────────────────────────────────────
-// 5. Export model object untuk oauth2-server
-// ─────────────────────────────────────────────────────────────
+
+
+
 
 const OAuthModel = {
   getClient,

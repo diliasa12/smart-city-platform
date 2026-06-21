@@ -48,7 +48,6 @@ app.use(
 
 app.use(verifyJWT);
 app.use(authLimiter);
-// PHP service (8000)
 app.use(
   "/php",
   createProxyMiddleware({
@@ -57,6 +56,7 @@ app.use(
     pathRewrite: { "^/php": "" },
   }),
 );
+// PHP service (8000)
 // Python ML Service (:5000)
 app.use(
   "/ml",
@@ -69,6 +69,16 @@ app.use(
     pathRewrite: {
       "^/ml": "",
     },
+  }),
+);
+
+// Iot Service
+app.use(
+  "/iot",
+  createProxyMiddleware({
+    target: "http://iot-service:3000",
+    changeOrigin: true,
+    pathRewrite: { "^/iot": "" },
   }),
 );
 

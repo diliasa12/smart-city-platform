@@ -13,7 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trustProxies(at: '*'); 
        $middleware->alias([
+        
         'gateway.auth' => \App\Http\Middleware\GatewayAuth::class,
         'gateway.role' => \App\Http\Middleware\GatewayRole::class,
     ]);

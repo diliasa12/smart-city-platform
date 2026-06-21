@@ -1,7 +1,7 @@
 const rateLimit = require("express-rate-limit");
 const { apiResponse } = require("../utils/response");
 
-// Global – per IP
+
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -23,7 +23,7 @@ const globalLimiter = rateLimit({
   },
 });
 
-// Per-token – authenticated users
+
 const authLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 500,
@@ -48,7 +48,7 @@ const authLimiter = rateLimit({
   },
 });
 
-// IoT-specific – per device ID
+
 const iotLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 60,
