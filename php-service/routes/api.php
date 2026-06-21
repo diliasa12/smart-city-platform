@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\EnvRoomController;
 use App\Http\Controllers\Users\SeatBookingController;
 use App\Http\Controllers\Admin\ZoneController;
+use App\Http\Controllers\TelemetryController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -28,3 +29,5 @@ Route::delete('/admin/zones/{id}', [ZoneController::class, 'destroy']);
     });
 
 });
+
+Route::post('/telemetry/callback', [TelemetryController::class, 'callback']);

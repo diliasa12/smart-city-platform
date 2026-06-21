@@ -4,6 +4,7 @@ const app = express();
 const path = require("path");
 const sound = require("sound-play");
 const dotenv = require("dotenv");
+const IS_DEV = true
 dotenv.config();
 app.use(require("cors")());
 app.use(express.json());

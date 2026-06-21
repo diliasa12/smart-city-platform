@@ -72,6 +72,16 @@ app.use(
   }),
 );
 
+// Iot Service
+app.use(
+  "/iot",
+  createProxyMiddleware({
+    target: "http://iot-service:3000",
+    changeOrigin: true,
+    pathRewrite: { "^/iot": "" },
+  }),
+);
+
 app.use((req, res) => {
   res
     .status(404)

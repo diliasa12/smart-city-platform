@@ -96,8 +96,23 @@ services:
     volumes:
       - ./php-service:/var/www/html
       - /var/www/html/vendor
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=smartcity
+      - DB_USERNAME=root
+      - DB_PASSWORD=rootpass
+      - APP_URL=http://php-service:8000
     depends_on:
       mysql:
         condition: service_healthy
+    networks:
+      - smartcity-net
+
+  iot-service:
+    build: ./iot
+    container_name: smartcity-iot-service
+    ports:
+      - "3001:3000"
     networks:
       - smartcity-net
