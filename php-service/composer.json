@@ -77,7 +77,8 @@
         "laravel": {
             "dont-discover": [
                 "laravel/pail",
-                "laravel/pao"
+                "laravel/pao",
+                "nunomaduro/collision"
             ]
         }
     },
