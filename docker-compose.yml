@@ -106,7 +106,7 @@ services:
       - DB_DATABASE=smartcity
       - DB_USERNAME=root
       - DB_PASSWORD=rootpass
-
+      - IOT_SERVICE_URL=http://iot-service:3000
       - SESSION_DRIVER=database
       - QUEUE_CONNECTION=database
       - CACHE_STORE=database
