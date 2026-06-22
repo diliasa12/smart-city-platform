@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
+use Illuminate\Database\Eloquent\Relations\HasMany;
 class EnvRoom extends Model
 {
     use HasFactory;
@@ -33,5 +33,9 @@ class EnvRoom extends Model
     public function zone(): BelongsTo
     {
         return $this->belongsTo(SharedZone::class, 'zone_id', 'id');
+    }
+    public function telemetryLogs(): HasMany
+    {
+        return $this->hasMany(EnvRoomTelemetryLog::class, 'room_id');
     }
 }
