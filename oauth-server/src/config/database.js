@@ -11,7 +11,7 @@ const {
   DB_PORT = "3306",
   DB_NAME = "smartcity",
   DB_USER = "root",
-  DB_PASS = "rootpass",
+  DB_PASSWORD = "rootpass",
 } = process.env;
 
 const pool = mysql.createPool({
@@ -19,7 +19,7 @@ const pool = mysql.createPool({
   port: parseInt(DB_PORT),
   database: DB_NAME,
   user: DB_USER,
-  password: DB_PASS,
+  password: DB_PASSWORD,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
