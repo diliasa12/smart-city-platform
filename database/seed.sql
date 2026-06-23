@@ -10,7 +10,7 @@ VALUES (1, 'Kampus Anggrek Binus', 'Jakarta Barat', '{"type": "Polygon", "coordi
 
 -- Menambahkan Ruangan Terkait ke Zona 1
 INSERT INTO env_rooms (id, zone_id, room_name, capacity, device_token, is_active)
-VALUES (1, 1, 'Ruang Lab IoT Smt 3', 30, 'wokwi_token_rahasia_123', 1);
+VALUES (1, 1, 'Ruang Lab IoT Smt 3', 30, 'esp32-room1', 1);
 
 
 -- ============================================================

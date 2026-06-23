@@ -7,51 +7,78 @@ use App\Helpers\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Http;
+use Carbon\Carbon;
+use App\Models\EnvDeviceCommand;
 
 class TelemetryController extends Controller
 {
-    /**
-     * Callback endpoint dipanggil oleh ML Service (Python) setelah
-     * prediksi selesai. Meng-update record yang sama berdasarkan log_id,
-     * lalu mengubah ml_status menjadi 'done'.
-     *
-     * Ini adalah titik akhir dari alur telemetry — tidak ada proses
-     * lanjutan ke client.
-     */
-    public function callback(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'log_id' => 'required|integer|exists:env_room_telemetry_logs,id',
-            'ml_classification_status' => 'required|in:nyaman,cukup_nyaman,tidak_nyaman',
-            'predicted_next_busy_hour' => 'required|integer|min:0|max:23',
-        ]);
+    public function callback(Request $request) 
+{
+    // 1. Logika validasi dan update database bawaan kamu yang sudah jalan...
+    // (Garis kode kamu yang mengupdate ml_classification_status menjadi 'tidak_nyaman')
 
-        if ($validator->fails()) {
-            return response()->json(
-                ApiResponse::error('Validasi gagal', 422, $validator->errors()),
-                422
-            );
+    // 2. AMBIL DATA RUANGAN (Sesuaikan dengan variabel di kode kamu)
+    // Di sini kita butuh $room_id dan $device_token untuk dikirim ke IoT Service
+    $log = EnvRoomTelemetryLog::with('room')->find($request->telemetry_log_id);
+    $room = $log->room;
+
+    // 3. INJEKSI LOGIKA OTOMATISASI DI SINI (Tepat sebelum return response)
+    if ($room && $room->is_active) {
+        if ($request->ml_classification_status === 'tidak_nyaman') {
+            // Nyalakan Kipas (Relay) dan Lampu Peringatan (LED) -> Value 1
+            $this->dispatchDeviceCommand($room->id, $room->device_token, 'relay', 1);
+            $this->dispatchDeviceCommand($room->id, $room->device_token, 'led', 1);
+        } else {
+            // Matikan jika kondisi kembali normal -> Value 0
+            $this->dispatchDeviceCommand($room->id, $room->device_token, 'relay', 0);
+            $this->dispatchDeviceCommand($room->id, $room->device_token, 'led', 0);
         }
-
-        $log = EnvRoomTelemetryLog::find($request->log_id);
-
-        if (!$log) {
-            return response()->json(
-                ApiResponse::error('Log telemetry tidak ditemukan', 404),
-                404
-            );
-        }
-
-        $log->update([
-            'ml_classification_status' => $request->ml_classification_status,
-            'predicted_next_busy_hour' => $request->predicted_next_busy_hour,
-            'ml_status' => 'done',
-        ]);
-
-        Log::info("[Telemetry] Callback diterima untuk log_id={$log->id}, status=done.");
-
-        return response()->json(
-            ApiResponse::success($log, 'Hasil prediksi ML berhasil disimpan sebagai hasil akhir.')
-        );
     }
+
+    // 4. Return response bawaan asli kamu
+    return response()->json([
+        'meta' => [
+            'status' => 'success',
+            'message' => 'Hasil prediksi ML berhasil disimpan sebagai hasil akhir.',
+            'code' => 200
+        ],
+        'data' => $log // atau variabel data kamu
+    ]);
+}
+
+/**
+ * Taruh helper function ini di bagian bawah class TelemetryController
+ */
+private function dispatchDeviceCommand($roomId, $deviceToken, $commandType, $value)
+{
+    // Simpan history ke database lokal dengan status pending
+    $command = EnvDeviceCommand::create([
+        'room_id'      => $roomId,
+        'command_type' => $commandType,
+        'payload'      => ['command' => $commandType, 'value' => $value],
+        'status'       => 'pending'
+    ]);
+
+    try {
+        $iotServiceUrl = env('NODEJS_IOT_SERVER_URL', 'http://iot-service:3000');
+        
+        // Tembak container Node.js secara internal via network docker
+        $response = Http::timeout(3)->post("{$iotServiceUrl}/api/devices/{$deviceToken}/command", [
+            'command' => $commandType,
+            'value'   => $value
+        ]);
+
+        if ($response->successful()) {
+            $command->update([
+                'status'      => 'sent',
+                'executed_at' => Carbon::now()
+            ]);
+        } else {
+            $command->update(['status' => 'failed']);
+        }
+    } catch (\Exception $e) {
+        $command->update(['status' => 'failed']);
+    }
+}
 }
