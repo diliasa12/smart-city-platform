@@ -16,16 +16,12 @@ async def lifespan(app: FastAPI):
     app.state.comfort_model = load_comfort_model()
     print("[ML Service] Model berhasil dimuat. Server siap menerima request.")
 
-    yield  # Server berjalan di sini
+    yield 
 
-    # Cleanup saat server shutdown
     del app.state.comfort_model
     print("[ML Service] Model dibersihkan dari memori. Server berhenti.")
 
-
-# ──────────────────────────────────────────────
-# Inisialisasi Aplikasi FastAPI
-# ──────────────────────────────────────────────
+# FastAPI
 app = FastAPI(
     title="SmartCity ML & Analytics Service",
     description=(
@@ -37,10 +33,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-
-# ──────────────────────────────────────────────
-# Daftarkan Router
-# ──────────────────────────────────────────────
 app.include_router(
     endpoints.router,
     prefix="/api/v1",

@@ -56,7 +56,8 @@ async def analyze_telemetry(
     2. Ekstrak fitur MFCC (40 koefisien) menggunakan librosa.
     3. Rata-rata MFCC di sepanjang dimensi waktu → vektor fitur 1D (40 nilai).
     4. Jalankan prediksi menggunakan model Random Forest dari app.state.
-    5. Kembalikan hasil klasifikasi + rekomendasi tindakan IoT.
+    5. SISTEM HYBRID: Validasi silang hasil AI dengan energi RMS fisik (Koreksi Crowd Noise).
+    6. Kembalikan hasil klasifikasi + rekomendasi tindakan IoT.
     """
     # ── Ambil model dari app.state (dimuat saat startup di main.py) ──
     model = getattr(request.app.state, "comfort_model", None)
@@ -82,18 +83,43 @@ async def analyze_telemetry(
             raise HTTPException(status_code=400, detail="File audio kosong atau tidak terbaca.")
 
         # ── 2 & 3. Ekstrak fitur MFCC ──
-        # sr=None → gunakan sample rate asli file, bukan resample paksa
-        y, sr = librosa.load(io.BytesIO(contents), sr=None)
+        # sr=22050 → resample ke 22.050 Hz
+        y, sr = librosa.load(io.BytesIO(contents), sr=22050)
         mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
 
         # Rata-rata sepanjang sumbu waktu → vektor fitur (40,) → reshape ke (1, 40)
         mfccs_scaled = np.mean(mfccs.T, axis=0).reshape(1, -1)
 
-        # ── 4. Prediksi dengan model Random Forest ──
-        # Output: 0 (Sepi/Normal) atau 1 (Bising/Ramai)
+        # ── 4. Prediksi awal dengan model Random Forest ──
         prediction = int(model.predict(mfccs_scaled)[0])
 
-        # ── 5. Ambil rekomendasi berbasis aturan ──
+        # ── 5. SISTEM HYBRID: Deteksi Durasi Kebisingan (Anti-Impulsive Noise) ──
+        # Hitung energi RMS per frame (tidak langsung di-mean)
+        rms_frames = librosa.feature.rms(y=y)[0]
+        
+        # Threshold batas volume suara keras
+        RMS_THRESHOLD = 0.035 
+        
+        # Hitung berapa persen jumlah frame yang volumenya di atas threshold
+        frames_di_atas_threshold = np.sum(rms_frames > RMS_THRESHOLD)
+        persentase_durasi_bising = frames_di_atas_threshold / len(rms_frames)
+
+        # Batasan durasi: Suara harus keras minimal 40% dari total durasi file
+        # Ini otomatis akan memfilter suara gelas jatuh (yang kerasnya cuma < 10% durasi)
+        MIN_DURATION_RATIO = 0.40
+
+        # KONDISI A: Koreksi untuk Crowd Noise (Suara keras dan durasinya panjang)
+        if persentase_durasi_bising >= MIN_DURATION_RATIO and prediction == 0:
+            prediction = 1
+
+        # KONDISI B: Koreksi untuk Gelas Jatuh / Tepuk Tangan (AI mengira bising, tapi durasi bisingnya terlalu singkat)
+        elif persentase_durasi_bising < MIN_DURATION_RATIO and prediction == 1:
+            prediction = 0
+            
+        # Hitung rata-rata RMS keseluruhan hanya untuk keperluan tampilan metadata
+        rms_energy = float(np.mean(rms_frames))
+
+        # ── 6. Ambil rekomendasi berbasis aturan ──
         rec = RECOMMENDATIONS[prediction]
 
         return {
@@ -107,11 +133,12 @@ async def analyze_telemetry(
                 "sample_rate_hz": int(sr),
                 "duration_seconds": round(float(len(y) / sr), 2),
                 "mfcc_coefficients": 40,
+                "rms_energy_level": round(rms_energy, 4), # Kita lampirkan agar bisa dipantau
+                "noise_duration_ratio": round(persentase_durasi_bising, 2)
             },
         }
 
     except HTTPException:
-        # Re-raise HTTPException yang sudah dibentuk di atas
         raise
     except Exception as e:
         raise HTTPException(
