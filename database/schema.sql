@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS env_room_telemetry_logs (
     temperature               DECIMAL(5, 2)   NOT NULL COMMENT 'Data Mikro Indoor',
     humidity                  DECIMAL(5, 2)   NOT NULL COMMENT 'Data Mikro Indoor',
     decibel_level             DECIMAL(5, 2)   NOT NULL COMMENT 'Data Kebisingan Mikro',
+        ml_status                 ENUM('pending', 'queued', 'done', 'failed') NOT NULL DEFAULT 'pending', 
     ml_classification_status  ENUM('nyaman', 'cukup_nyaman', 'tidak_nyaman') NOT NULL,
     predicted_next_busy_hour  TINYINT UNSIGNED NOT NULL,
     created_at                DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,

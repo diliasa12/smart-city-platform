@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\EnvRoom;
 use App\Models\SeatBooking;
-use App\Models\RoomTelemetryLog;
+use App\Models\EnvRoomTelemetryLog;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -32,7 +32,7 @@ class DashboardController extends Controller
         $rooms = EnvRoom::with('zone')->get();
 
         $roomStatus = $rooms->map(function ($room) {
-            $latest = RoomTelemetryLog::where('room_id', $room->id)
+            $latest = EnvRoomTelemetryLog::where('room_id', $room->id)
                 ->latest('created_at')
                 ->first();
 

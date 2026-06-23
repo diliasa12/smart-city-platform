@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-
+use App\Models\EnvRoom;
 class Zone extends Model
 {
     use HasFactory;
@@ -24,7 +24,7 @@ class Zone extends Model
     ];
 
     public function rooms()
-    {
-        return $this->hasMany(Room::class, 'zone_id');
-    }
+{
+    return $this->hasMany(EnvRoom::class, 'zone_id'); // bukan Room::class
+}
 }

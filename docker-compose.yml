@@ -35,6 +35,7 @@ services:
       - 8081:80
     environment:
       - PMA_ARBITRARY=1
+      - PMA_HOST=mysql
     networks:
       - smartcity-net
   rabbitmq:
@@ -106,12 +107,12 @@ services:
       - DB_DATABASE=smartcity
       - DB_USERNAME=root
       - DB_PASSWORD=rootpass
-      - IOT_SERVICE_URL=http://iot-service:3000
+      - IOT_SERVICE_URL=${IOT_URL}
       - SESSION_DRIVER=database
       - QUEUE_CONNECTION=database
       - CACHE_STORE=database
 
-      - JWT_SECRET=kelompok3
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       mysql:
         condition: service_healthy
