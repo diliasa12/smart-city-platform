@@ -7,6 +7,9 @@ WORKDIR /app
 # Menyalin file requirements untuk caching
 COPY requirements.txt .
 
+# Install library sistem librosa
+RUN apt-get update && apt-get install -y libsndfile1 && rm -rf /var/lib/apt/lists/*
+
 # Menginstal library Python
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
