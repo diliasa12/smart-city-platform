@@ -11,14 +11,10 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    /**
-     * Halaman utama panel administrator.
-     * Menampilkan grafik agregasi kualitas kota dan status IoT.
-     * (sesuai spesifikasi: GET /admin/dashboard, Auth: admin)
-     */
+    
     public function index(): View
     {
-        // 1. Statistik ringkas
+        
         $stats = [
             'total_users'          => User::where('role', 'user')->count(),
             'total_rooms'          => EnvRoom::count(),
@@ -28,7 +24,7 @@ class DashboardController extends Controller
                                         ->count(),
         ];
 
-        // 2. Status kenyamanan tiap ruangan (ambil log telemetry PALING BARU per ruangan)
+        
         $rooms = EnvRoom::with('zone')->get();
 
         $roomStatus = $rooms->map(function ($room) {
@@ -50,7 +46,7 @@ class DashboardController extends Controller
             ];
         });
 
-        // 3. Booking terbaru (5 booking paling baru, semua user)
+        
         $recentBookings = SeatBooking::with(['room', 'user'])
             ->latest('created_at')
             ->take(5)

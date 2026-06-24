@@ -25,6 +25,6 @@ class Zone extends Model
 
     public function rooms()
 {
-    return $this->hasMany(EnvRoom::class, 'zone_id'); // bukan Room::class
+    return $this->hasMany(EnvRoom::class, 'zone_id'); 
 }
 }

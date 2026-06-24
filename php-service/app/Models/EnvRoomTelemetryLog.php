@@ -9,7 +9,7 @@ class EnvRoomTelemetryLog extends Model
 {
     protected $table = 'env_room_telemetry_logs';
     
-    public $timestamps = false; // Hanya menggunakan created_at bawaan MySQL
+    public $timestamps = false; 
 
     protected $fillable = [
     'room_id',

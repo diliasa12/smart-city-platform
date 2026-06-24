@@ -128,7 +128,6 @@ function requireRole(...roles) {
   };
 }
 
-// OAuth 2.0 Token Introspection (RFC 7662)
 async function introspectToken(token) {
   const response = await axios.post(
     `${OAUTH_URL}/oauth/introspect`,

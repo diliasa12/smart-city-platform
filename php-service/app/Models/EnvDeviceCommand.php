@@ -9,7 +9,7 @@ class EnvDeviceCommand extends Model
 {
     protected $table = 'env_device_commands';
     
-    // Karena di schema.sql hanya ada created_at, matikan otomatisasi timestamp default Laravel
+    
     public $timestamps = false; 
 
     protected $fillable = [

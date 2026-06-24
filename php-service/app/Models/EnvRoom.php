@@ -10,7 +10,7 @@ class EnvRoom extends Model
 {
     use HasFactory;
 
-    // Menentukan nama tabel karena tidak menggunakan aturan jamak standar Laravel
+    
     protected $table = 'env_rooms';
 
     protected $fillable = [
@@ -27,9 +27,7 @@ class EnvRoom extends Model
         'is_active' => 'boolean',
     ];
 
-    /**
-     * Relasi ke tabel shared_zones (Many-to-One)
-     */
+    
     public function zone(): BelongsTo
     {
         return $this->belongsTo(SharedZone::class, 'zone_id', 'id');

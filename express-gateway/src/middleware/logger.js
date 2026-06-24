@@ -53,10 +53,10 @@ function generateRequestId() {
 }
 
 function statusColor(status) {
-  if (status >= 500) return "\x1b[31m"; // merah
-  if (status >= 400) return "\x1b[33m"; // kuning
-  if (status >= 300) return "\x1b[36m"; // cyan
-  return "\x1b[32m"; // hijau
+  if (status >= 500) return "\x1b[31m";
+  if (status >= 400) return "\x1b[33m";
+  if (status >= 300) return "\x1b[36m";
+  return "\x1b[32m";
 }
 
 module.exports = { requestLogger };

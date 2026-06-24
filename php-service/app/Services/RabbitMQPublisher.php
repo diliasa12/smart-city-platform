@@ -7,15 +7,7 @@ use PhpAmqpLib\Exception\AMQPProtocolChannelException;
 use PhpAmqpLib\Message\AMQPMessage;
 use Illuminate\Support\Facades\Log;
 
-/**
- * RabbitMQPublisher
- *
- * Bertugas publish payload telemetry ke queue `telemetry_ml_queue`
- * agar dikonsumsi oleh ML Service (Python).
- *
- * Payload yang dipublish menyertakan `callback_url` agar ML Service tahu
- * ke mana harus POST balik hasil prediksinya.
- */
+
 class RabbitMQPublisher
 {
     protected AMQPStreamConnection $connection;
@@ -35,16 +27,11 @@ class RabbitMQPublisher
 
         $this->channel = $this->connection->channel();
 
-        // durable=true supaya queue tetap ada walau RabbitMQ restart
+        
         $this->channel->queue_declare($this->queueName, false, true, false, false);
     }
 
-    /**
-     * Publish satu payload telemetry ke queue.
-     *
-     * @param array $payload Harus minimal berisi log_id, room_id, dan data sensor mentah
-     * @return bool true jika berhasil dipublish
-     */
+    
     public function publishTelemetry(array $payload): bool
     {
         try {

@@ -56,8 +56,7 @@ app.use(
     pathRewrite: { "^/php": "" },
   }),
 );
-// PHP service (8000)
-// Python ML Service (:5000)
+
 app.use(
   "/ml",
   createProxyMiddleware({
@@ -72,7 +71,6 @@ app.use(
   }),
 );
 
-// Iot Service
 app.use(
   "/iot",
   createProxyMiddleware({
