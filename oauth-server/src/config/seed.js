@@ -1,12 +1,4 @@
-/**
- * src/config/seed.js
- *
- * PERBAIKAN:
- *  - Sebelumnya INSERT ke `admin_accounts` yang tidak ada di schema.sql
- *  - Sekarang INSERT ke `users` dengan kolom yang sesuai schema:
- *    (id, name, email, password, phone, role)
- *  - Menyertakan kolom `role` ('admin' / 'user') sesuai schema.sql
- */
+
 
 const mysql = require("mysql2/promise");
 const bcrypt = require("bcryptjs");
@@ -24,7 +16,7 @@ async function runSeeder() {
 
   console.log("[Seeder] Memulai seeding data users...");
 
-  // Data seed sesuai schema: id, name, email, password, phone, role
+  
   const users = [
     {
       id: 1,

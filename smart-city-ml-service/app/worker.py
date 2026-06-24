@@ -17,7 +17,7 @@ def process_message(ch, method, properties, body):
     try:
         # Parse payload dari Laravel
         payload = json.loads(body)
-        print(f"\n[x] Menerima data dari log_id: {payload.get('log_id')}")
+        print(f"\n Menerima data dari log_id: {payload.get('log_id')}")
 
         temperature = float(payload.get("temperature", 0.0))
         humidity = float(payload.get("humidity", 0.0))
@@ -57,20 +57,20 @@ def process_message(ch, method, properties, body):
             
             # Timeout 5 detik
             response = requests.post(callback_url, json=result_payload, timeout=5)
-            print(f"[v] Callback ke Laravel sukses | Status: {response.status_code}")
+            print(f"Callback ke Laravel sukses | Status: {response.status_code}")
         else:
-            print("[!] Peringatan: callback_url tidak ditemukan di dalam payload!")
+            print("Peringatan: callback_url tidak ditemukan di dalam payload!")
 
         # Beri tahu RabbitMQ bahwa pesan berhasil diproses 
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
     except Exception as e:
-        print(f"[X] Error saat memproses pesan: {str(e)}")
+        print(f" Error saat memproses pesan: {str(e)}")
         # Tolak pesan jika gagal 
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
 def start_consumer():
-    print(f"[*] Menghubungkan ke RabbitMQ di {RABBITMQ_HOST}...")
+    print(f"Menghubungkan ke RabbitMQ di {RABBITMQ_HOST}...")
     connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST))
     channel = connection.channel()
     
@@ -81,7 +81,7 @@ def start_consumer():
     channel.basic_qos(prefetch_count=1)
     channel.basic_consume(queue=QUEUE_NAME, on_message_callback=process_message)
     
-    print(f"[*] Worker siap. Menunggu antrean di '{QUEUE_NAME}'. Tekan CTRL+C untuk keluar.")
+    print(f" Worker siap. Menunggu antrean di '{QUEUE_NAME}'. Tekan CTRL+C untuk keluar.")
     channel.start_consuming()
 
 if __name__ == "__main__":

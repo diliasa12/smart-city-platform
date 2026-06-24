@@ -1,0 +1,28 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        DB::unprepared("
+            ALTER TABLE env_room_telemetry_logs
+                MODIFY ml_classification_status ENUM('nyaman', 'cukup_nyaman', 'tidak_nyaman') NULL,
+                MODIFY predicted_next_busy_hour TINYINT UNSIGNED NULL,
+                ADD COLUMN ml_status ENUM('pending', 'queued', 'done', 'failed') NOT NULL DEFAULT 'pending'
+                    AFTER decibel_level
+        ");
+    }
+
+    public function down(): void
+    {
+        DB::unprepared("
+            ALTER TABLE env_room_telemetry_logs
+                DROP COLUMN ml_status,
+                MODIFY ml_classification_status ENUM('nyaman', 'cukup_nyaman', 'tidak_nyaman') NOT NULL,
+                MODIFY predicted_next_busy_hour TINYINT UNSIGNED NOT NULL
+        ");
+    }
+};
