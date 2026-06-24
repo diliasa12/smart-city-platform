@@ -8,12 +8,6 @@ const db = require("../config/database");
 const Router = require("express");
 const router = Router();
 
-// POST /oauth/token
-// Grant types:
-//   grant_type=password            → citizen login (email + password)
-//   grant_type=client_credentials  → service/IoT (client_id + client_secret)
-//   grant_type=refresh_token       → perpanjang sesi
-
 router.post(
   "/token",
   catchAsync(async (req, res) => {

@@ -7,8 +7,8 @@ const oauth = new OAuth2Server({
   allowBearerTokensInQueryString: false,
   allowEmptyState: false,
   requireClientAuthentication: {
-    password: false, // citizen login tidak wajib client_secret
-    client_credentials: true, // service-to-service wajib client_secret
+    password: false,
+    client_credentials: true,
     refresh_token: false,
   },
 });
