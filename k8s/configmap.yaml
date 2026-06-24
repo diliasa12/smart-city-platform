@@ -18,3 +18,6 @@ data:
   SESSION_DRIVER: "database"
   QUEUE_CONNECTION: "database"
   CACHE_STORE: "database"
+  RABBITMQ_HOST: "rabbitmq-service"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_TELEMETRY_QUEUE: "telemetry_ml_queue"

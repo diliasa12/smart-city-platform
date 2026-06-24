@@ -102,6 +102,31 @@ spec:
                 secretKeyRef:
                   name: smartcity-secrets
                   key: JWT_SECRET
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: RABBITMQ_HOST
+            - name: RABBITMQ_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: RABBITMQ_PORT
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: smartcity-secrets
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartcity-secrets
+                  key: RABBITMQ_PASSWORD
+            - name: RABBITMQ_TELEMETRY_QUEUE
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: RABBITMQ_TELEMETRY_QUEUE
 ---
 apiVersion: v1
 kind: Service
