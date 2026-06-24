@@ -6,7 +6,7 @@ use App\Http\Controllers\Users\RoomComfortController;
 use App\Http\Controllers\Admin\ZoneController;
 use App\Http\Controllers\TelemetryController;
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\Users\SeatRecommendationController;
 
 Route::get('/health', fn () => response()->json([
     'status' => 'ok',
@@ -31,7 +31,7 @@ Route::middleware('gateway.auth')->group(function () {
     Route::get('bookings', [SeatBookingController::class, 'index']);
     Route::post('bookings', [SeatBookingController::class, 'store']);
     Route::delete('bookings/{id}', [SeatBookingController::class, 'destroy']);
-
+Route::get('/rooms/{id}/recommend-seats', [SeatRecommendationController::class, 'recommend']);
     
     Route::middleware('gateway.role:admin')->group(function () {
         
