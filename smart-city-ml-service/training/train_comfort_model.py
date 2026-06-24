@@ -16,7 +16,7 @@ df['is_noisy'] = (df['decibel_level'] > 70).astype(int)
 features = [
     'temperature_c', 'humidity_%',
     'traffic_density',  'near_construction',
-    'population_density', 'vehicle_count',
+    'population_density', 
      'public_event', 'school_zone'
 ]
 
