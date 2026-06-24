@@ -10,11 +10,7 @@ use Illuminate\Http\Request;
 
 class RoomComfortController extends Controller
 {
-    /**
-     * GET /api/rooms
-     * Daftar semua ruangan aktif beserta status kenyamanan terbaru.
-     * Berguna untuk user memilih ruangan sebelum booking.
-     */
+    
     public function index(Request $request)
     {
         $zoneId = $request->query('zone_id');
@@ -40,11 +36,7 @@ class RoomComfortController extends Controller
         return ApiResponse::success($data, 'Daftar ruangan berhasil diambil');
     }
 
-    /**
-     * GET /api/rooms/{id}/comfort
-     * Detail status kenyamanan satu ruangan (real-time).
-     * Digunakan user sebelum memutuskan booking ruangan tertentu.
-     */
+    
     public function show(int $id)
     {
         $room = EnvRoom::with('zone')
@@ -65,11 +57,7 @@ class RoomComfortController extends Controller
         return ApiResponse::success($data, 'Status kenyamanan ruangan berhasil diambil');
     }
 
-    /**
-     * GET /api/rooms/{id}/comfort/history
-     * Riwayat kenyamanan ruangan dalam 24 jam terakhir.
-     * Membantu user melihat tren kondisi ruangan sebelum booking.
-     */
+    
     public function history(int $id)
     {
         $room = EnvRoom::where('is_active', true)->find($id);
@@ -99,7 +87,7 @@ class RoomComfortController extends Controller
         ], 'Riwayat kenyamanan 24 jam terakhir berhasil diambil');
     }
 
-    // ── Helper ────────────────────────────────────────────────────────────
+    
 
     private function formatRoomComfort(EnvRoom $room, ?EnvRoomTelemetryLog $latest): array
     {

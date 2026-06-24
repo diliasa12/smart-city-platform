@@ -12,7 +12,7 @@ use App\Models\EnvDeviceCommand;
 
 class TelemetryController extends Controller
 {
-    // ✅ TAMBAHAN: method store() yang hilang tapi ada di route
+    
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -35,7 +35,7 @@ class TelemetryController extends Controller
 
     public function callback(Request $request)
     {
-        // ✅ PERBAIKAN: validasi input sebelum digunakan
+        
         $validated = $request->validate([
             'telemetry_log_id'        => 'required|integer|exists:env_room_telemetry_logs,id',
             'ml_classification_status'=> 'required|in:nyaman,cukup_nyaman,tidak_nyaman',
@@ -44,7 +44,7 @@ class TelemetryController extends Controller
 
         $log = EnvRoomTelemetryLog::with('room')->find($validated['telemetry_log_id']);
 
-        // ✅ PERBAIKAN: update semua kolom hasil ML
+        
         $log->update([
             'ml_classification_status' => $validated['ml_classification_status'],
             'predicted_next_busy_hour' => $validated['predicted_next_busy_hour'],

@@ -74,7 +74,6 @@ app.use(
   }),
 );
 
-// Iot Service
 app.use(
   "/iot",
   createProxyMiddleware({

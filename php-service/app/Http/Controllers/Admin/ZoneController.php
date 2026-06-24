@@ -82,7 +82,7 @@ class ZoneController extends Controller
             return response()->json(ApiResponse::error('Wilayah tidak ditemukan', 404), 404);
         }
 
-       // Cek apakah ada ruangan di zone ini sebelum hapus
+       
         if ($zone->rooms()->count() > 0) {
             return response()->json(ApiResponse::error('Gagal hapus: Wilayah ini masih memiliki ruangan terdaftar', 400), 400);
         }
