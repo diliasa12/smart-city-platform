@@ -4,9 +4,7 @@ namespace App\Helpers;
 
 class ApiResponse
 {
-    /**
-     * Format balasan sukses
-     */
+    
     public static function success($data = null, $message = 'Success', $code = 200)
     {
         return response()->json([
@@ -19,9 +17,7 @@ class ApiResponse
         ], $code);
     }
 
-    /**
-     * Format balasan error/gagal
-     */
+    
     public static function error($message = 'Error', $code = 400, $errors = null)
     {
         return response()->json([

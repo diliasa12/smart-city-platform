@@ -1,9 +1,3 @@
-/**
- * src/config/database.js
- * Koneksi MySQL menggunakan mysql2/promise
- * Tabel yang digunakan: shared_oauth_clients, shared_oauth_tokens, citizen_citizens
- */
-
 const mysql = require("mysql2/promise");
 
 const {
@@ -26,7 +20,6 @@ const pool = mysql.createPool({
   timezone: "Z",
 });
 
-// Test koneksi saat startup
 pool
   .getConnection()
   .then((conn) => {

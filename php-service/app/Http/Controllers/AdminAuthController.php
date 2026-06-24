@@ -9,19 +9,13 @@ use Illuminate\Support\Facades\Auth;
 
 class AdminAuthController extends Controller
 {
-    /**
-     * Menampilkan formulir login khusus untuk akun administrator.
-     * (GET /admin/login, Guest)
-     */
+    
     public function showLoginForm(): View
     {
         return view('admin.login');
     }
 
-    /**
-     * Memproses verifikasi kredensial admin dan membuat sesi session baru.
-     * (POST /admin/login, Guest)
-     */
+    
     public function login(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
@@ -29,13 +23,13 @@ class AdminAuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        // Cek login dengan role harus 'admin'
+        
         if (Auth::attempt($credentials) && Auth::user()->role === 'admin') {
             $request->session()->regenerate();
             return redirect()->intended('/admin/dashboard');
         }
 
-        // Kalau role bukan admin, paksa logout lagi
+        
         Auth::logout();
 
         return back()->withErrors([
@@ -43,9 +37,7 @@ class AdminAuthController extends Controller
         ])->onlyInput('email');
     }
 
-    /**
-     * Logout admin dan hapus session.
-     */
+    
     public function logout(Request $request): RedirectResponse
     {
         Auth::logout();
