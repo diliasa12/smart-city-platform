@@ -4,13 +4,13 @@ const app = express();
 const path = require("path");
 const sound = require("sound-play");
 const dotenv = require("dotenv");
+const IS_DEV = process.env.NODE_ENV !== "production";
 dotenv.config();
 app.use(require("cors")());
 app.use(express.json());
 
 const deviceData = {};
 
-// Dev: broker publik, no TLS, no auth
 const connectUrl = "mqtt://broker.hivemq.com:1883";
 const configMqtt = {
   clientId: "server-dev-" + Math.random().toString(16).substr(2, 8),
@@ -28,10 +28,6 @@ mqttClient.on("connect", () => {
 mqttClient.on("message", (topic, message) => {
   try {
     const data = JSON.parse(message.toString());
-    if (data.kebisingan > 50) {
-      const audio = path.join(__dirname, "..", "audio", "alert.wav");
-      sound.play(audio);
-    }
     deviceData[data.device_id] = {
       ...data,
       receivedAt: new Date().toISOString(),

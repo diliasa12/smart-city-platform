@@ -5,12 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
+use Illuminate\Database\Eloquent\Relations\HasMany;
 class EnvRoom extends Model
 {
     use HasFactory;
 
-    // Menentukan nama tabel karena tidak menggunakan aturan jamak standar Laravel
+    
     protected $table = 'env_rooms';
 
     protected $fillable = [
@@ -27,11 +27,13 @@ class EnvRoom extends Model
         'is_active' => 'boolean',
     ];
 
-    /**
-     * Relasi ke tabel shared_zones (Many-to-One)
-     */
+    
     public function zone(): BelongsTo
     {
         return $this->belongsTo(SharedZone::class, 'zone_id', 'id');
+    }
+    public function telemetryLogs(): HasMany
+    {
+        return $this->hasMany(EnvRoomTelemetryLog::class, 'room_id');
     }
 }

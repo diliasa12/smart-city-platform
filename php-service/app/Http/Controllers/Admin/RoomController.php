@@ -13,7 +13,7 @@ class RoomController extends Controller
 {
     public function index()
     {
-        // Ambil data ruangan beserta info wilayahnya
+        
         $rooms = Room::with('zone')->orderBy('created_at', 'desc')->get();
         return response()->json(ApiResponse::success($rooms, 'Data ruangan berhasil diambil'));
     }
@@ -30,7 +30,7 @@ class RoomController extends Controller
             return response()->json(ApiResponse::error('Validasi gagal', 422, $validator->errors()), 422);
         }
 
-        // Generate Device Token unik secara otomatis untuk Wokwi IoT
+        
         $deviceToken = 'iot_' . Str::random(40);
 
         $room = Room::create([
