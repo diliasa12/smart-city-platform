@@ -1,0 +1,6 @@
+public/storage
+.git
+node_modules
+vendor        # if you're copying vendor in
+*.log
+.env
