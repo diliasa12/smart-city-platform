@@ -2,6 +2,7 @@ import pika
 import json
 import requests
 import numpy as np
+import time
 import os
 from app.core.model_loader import load_comfort_model, load_busy_hour_model
 
@@ -12,7 +13,19 @@ busy_hour_model = load_busy_hour_model()
 # Konfigurasi RabbitMQ 
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
 QUEUE_NAME = "telemetry_ml_queue"
-
+def create_connection(retries=10, delay=5):
+    for i in range(retries):
+        try:
+            print(f"Mencoba konek ke RabbitMQ ({i+1}/{retries})...")
+            connection = pika.BlockingConnection(
+                pika.ConnectionParameters(host=RABBITMQ_HOST)
+            )
+            print("Berhasil konek ke RabbitMQ!")
+            return connection
+        except pika.exceptions.AMQPConnectionError:
+            print(f"Gagal, retry dalam {delay} detik...")
+            time.sleep(delay)
+    raise Exception("Tidak bisa konek ke RabbitMQ setelah beberapa kali retry.")
 def process_message(ch, method, properties, body):
     try:
         # Parse payload dari Laravel
@@ -70,18 +83,15 @@ def process_message(ch, method, properties, body):
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
 def start_consumer():
-    print(f"Menghubungkan ke RabbitMQ di {RABBITMQ_HOST}...")
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST))
+    # Hapus print lama di sini, sudah ada di dalam create_connection()
+    connection = create_connection()  # sudah ada retry di sini
     channel = connection.channel()
     
-    # Deklarasi queue 
     channel.queue_declare(queue=QUEUE_NAME, durable=True)
-    
-    # Jangan beri pesan baru sebelum pesan sebelumnya selesai
     channel.basic_qos(prefetch_count=1)
     channel.basic_consume(queue=QUEUE_NAME, on_message_callback=process_message)
     
-    print(f" Worker siap. Menunggu antrean di '{QUEUE_NAME}'. Tekan CTRL+C untuk keluar.")
+    print(f"Worker siap. Menunggu antrean di '{QUEUE_NAME}'. Tekan CTRL+C untuk keluar.")
     channel.start_consuming()
 
 if __name__ == "__main__":
