@@ -3,7 +3,7 @@ import json
 import requests
 import numpy as np
 import os
-from core.model_loader import load_comfort_model, load_busy_hour_model
+from app.core.model_loader import load_comfort_model, load_busy_hour_model
 
 # Load model 
 comfort_model = load_comfort_model()
