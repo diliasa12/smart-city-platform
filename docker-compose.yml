@@ -95,7 +95,6 @@ services:
       - "8000:8000"
     volumes:
       - ./php-service:/var/www/html
-      - /var/www/html/vendor
     environment:
       - APP_NAME=SmartCity
       - APP_ENV=local
@@ -160,4 +159,4 @@ services:
       - ./smart-city-ml-service:/app
     networks:
       - smartcity-net
-    restart: always
+    # restart: always
