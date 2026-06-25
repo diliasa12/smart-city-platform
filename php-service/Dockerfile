@@ -16,9 +16,9 @@ RUN composer dump-autoload --optimize --no-dev --no-scripts \
   && rm -f bootstrap/cache/packages.php \
   && rm -f bootstrap/cache/services.php
 RUN mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views \
-  storage/logs bootstrap/cache \
-  && chmod -R 775 storage bootstrap/cache \
-  && chown -R www-data:www-data storage bootstrap/cache
+  storage/logs bootstrap/cache public/storage \
+  && chmod -R 775 storage bootstrap/cache public/storage \
+  && chown -R www-data:www-data storage bootstrap/cache public/storage
 
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
