@@ -38,6 +38,6 @@ print(f"[Train BusyHour] Training selesai dengan {len(X)} sampel.")
 
 # Save
 os.makedirs(model_dir, exist_ok=True)
-output_path = os.path.join(model_dir, 'busy_hour_forecaster.pkl')
+output_path = os.path.join(model_dir, 'busy_hour_model.pkl')
 joblib.dump(model, output_path)
 print(f"[Train BusyHour] Model disimpan ke: {output_path}")

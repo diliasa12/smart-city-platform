@@ -26,7 +26,7 @@ RUN echo "[ML Build] Memulai training comfort model..." && \
 # Verifikasi .pkl ada sebelum lanjut
 RUN ls -lh models/ && \
     test -f models/comfort_classifier.pkl || (echo "ERROR: comfort_classifier.pkl tidak terbentuk!" && exit 1) && \
-    test -f models/busy_hour_forecaster.pkl || (echo "ERROR: busy_hour_forecaster.pkl tidak terbentuk!" && exit 1)
+    test -f models/busy_hour_model.pkl || (echo "ERROR: busy_hour_model.pkl tidak terbentuk!" && exit 1)
 
 
 # ── Stage 2: Production image (lebih kecil, tanpa training overhead) ─────────

@@ -1,110 +1,161 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-import numpy as np
-import librosa
-from app.core.model_loader import load_comfort_model, load_busy_hour_model
+import asyncio
+import json
+import os
+import aio_pika
+import httpx
+import joblib
+import pandas as pd
+import numpy as np  
+from fastapi import APIRouter
 
 router = APIRouter()
 
-comfort_model = load_comfort_model()
-busy_hour_model = load_busy_hour_model()
+# URL Callback
+PHP_CALLBACK_URL = os.getenv("PHP_CALLBACK_URL", "http://localhost:3000/api/telemetry/callback")
 
-# --- SCHEMAS ---
-class TelemetryPayload(BaseModel):
-    """
-    Schema menerima payload dari RabbitMQ / Laravel. 
-    """
-    log_id: int = Field(alias="log_id", default=0)
-    temperature: float
-    humidity: float
-    decibel_level: float
+model_rf = None
+label_encoder = None
+busy_hour_model = None
+
+def load_models():
+    global model_rf, label_encoder, busy_hour_model
     
-    # Fitur untuk Comfort Model 
-    near_construction: int = Field(default=0)
-    population_density: float = Field(default=500.0)
-    public_event: int = Field(default=0)
-    school_zone: int = Field(default=1)
+    if model_rf is None or label_encoder is None:  
+        try:
+            from app.core.model_loader import load_comfort_model
+            saved_data = load_comfort_model()
+            model_rf = saved_data['model']
+            label_encoder = saved_data['encoder']
+            print(f"[Consumer] ✓ Berhasil memuat model comfort_classifier.pkl ke memori.")
+        except Exception as e:
+            print(f"[Consumer] ✗ Gagal memuat model/encoder kamu: {e}")
+            raise
 
-    # Fitur untuk Busy Hour Model
-    light: float = Field(default=300.0)
-    co2: float = Field(default=400.0)
-    pir: int = Field(default=1)
+    # Memuat Model Jam Sibuk
+    if busy_hour_model is None:
+        try:  
+            from app.core.model_loader import load_busy_hour_model
+            busy_hour_model = load_busy_hour_model()
+            print(f"[Consumer] ✓ Berhasil memuat busy_hour_model milik teman ke memori.")
+        except Exception as e:
+            print(f"[Consumer] ✗ Gagal memuat busy_hour_model milik teman: {e}")
 
-class TelemetryRequest(BaseModel):
-    audio_file_path: str 
+def run_ml_pipeline(payload: dict) -> dict:
+    load_models()
+    
+    suhu = float(payload.get("suhu", payload.get("temperature", 0)))
+    kelembaban = float(payload.get("kelembaban", payload.get("humidity", 0)))
+    kebisingan = float(payload.get("kebisingan", payload.get("decibel_level", 0)))
+    hour = int(payload.get("hour", 0))
+    is_weekend = int(payload.get("is_weekend", 0))
+    log_id = payload.get("log_id")
+    device_id = payload.get("device_id", "unknown")
+ 
+    features = pd.DataFrame([{
+        'suhu': suhu,
+        'kelembaban': kelembaban,
+        'kebisingan': kebisingan,
+        'hour': hour,
+        'is_weekend': is_weekend
+    }])
+    
+    prediction_encoded = model_rf.predict(features)[0]
+    comfort_status = label_encoder.inverse_transform([prediction_encoded])[0]
 
-
-# --- ENDPOINTS ---
-
-@router.post("/process-telemetry")
-async def process_telemetry(payload: TelemetryPayload):
-    """
-    Endpoint terpadu untuk memproses data dari RabbitMQ.
-    Menghasilkan klasifikasi kenyamanan dan prediksi jam sibuk sekaligus.
-    """
-    try:
-        # Prediksi Kenyamanan 
-        comfort_features = np.array([[
-            payload.temperature, 
-            payload.humidity, 
-            payload.decibel_level, 
-            payload.near_construction,
-            payload.population_density, 
-            payload.public_event, 
-            payload.school_zone
-        ]])
-        
-        comfort_pred = int(comfort_model.predict(comfort_features)[0])
-        
-        if comfort_pred == 0:
-            status_kenyamanan = "nyaman"
-        elif comfort_pred == 1:
-            status_kenyamanan = "tidak_nyaman"
-        else:
-            status_kenyamanan = "cukup_nyaman"
-            
-        # Prediksi Jam Sibuk
-        busy_features = np.array([[
-            payload.temperature, 
-            payload.light, 
-            payload.decibel_level, 
-            payload.co2, 
-            payload.pir
-        ]])
-        
-        busy_pred = int(busy_hour_model.predict(busy_features)[0])
-        
-        # Format Output untuk Laravel
-        return {
-            "telemetry_log_id": payload.log_id,
-            "ml_classification_status": status_kenyamanan,
-            "predicted_next_busy_hour": busy_pred
+    # PREDIKSI JAM SIBUK
+    busy_pred = 0
+    if busy_hour_model is not None:
+        try:
+            busy_features = np.array([[
+                suhu, 
+                300.0,          
+                kebisingan, 
+                400.0,            
+                1                
+            ]])
+            busy_pred = int(busy_hour_model.predict(busy_features)[0])
+        except Exception as e:
+            print(f"[Consumer] ✗ Gagal memprediksi jam sibuk: {e}")
+    
+    return {
+        "status": "success",
+        "comfort_status": comfort_status,
+        "predicted_next_busy_hour": busy_pred,
+        "metadata": {
+            "log_id": log_id,
+            "device_id": device_id,
+            "suhu": suhu,
+            "kelembaban": kelembaban,
+            "kebisingan": kebisingan,
+            "hour": hour,
+            "is_weekend": is_weekend
         }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    }
 
+async def process_message(message: aio_pika.IncomingMessage) -> None:
+    async with message.process(requeue=True):
+        # 1. Proses JSON
+        try:
+            payload = json.loads(message.body.decode())
+        except Exception as e:
+            print(f"[Consumer] ✗ Gagal memproses JSON message: {e} — message di-reject.")
+            raise
 
-@router.post("/analyze-telemetry-audio")
-async def analyze_telemetry_audio(request: TelemetryRequest):
-    """Tetap ada untuk pemrosesan file audio mentah jika sewaktu-waktu dibutuhkan"""
-    try:
-        y, sr = librosa.load(request.audio_file_path)
-        mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
-        mfccs_scaled = np.mean(mfccs.T, axis=0).reshape(1, -1)
-        
-        prediction = int(comfort_model.predict(mfccs_scaled)[0])
-        
-        if prediction == 0:
-            status_kenyamanan = "nyaman"
-        elif prediction == 1:
-            status_kenyamanan = "tidak_nyaman"
-        else:
-            status_kenyamanan = "cukup_nyaman"
+        if not payload:
+            print("[Consumer] ✗ Payload kosong — message diabaikan.")
+            return
+
+        log_id = payload.get("log_id")
+        if log_id is None:
+            print("[Consumer] ✗ Field 'log_id' tidak ditemukan — message diabaikan.")
+            return
+
+        # 2. Penggolongan
+        try:
+            loop = asyncio.get_event_loop()
+            result_payload = await loop.run_in_executor(
+                None,
+                run_ml_pipeline,
+                payload
+            )
+            print(f"[Consumer] ✓ Penggolongan selesai — Log ID {log_id}: {result_payload['comfort_status']}")
+        except Exception as e:
+            print(f"[Consumer] ✗ Error saat penggolongan untuk Log ID {log_id}: {e}")
+            raise 
             
-        return {
-            "status": "success", 
-            "ml_classification_status": status_kenyamanan
-        }
+        # 3. HTTP POST Callback PHP
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(
+                    PHP_CALLBACK_URL,
+                    json=result_payload,
+                    headers={"Content-Type": "application/json"},
+                )
+                print(f"[Consumer] ✓ Callback terkirim ke PHP → HTTP {response.status_code}")
+        except httpx.ConnectError:
+            print(f"[Consumer] ✗ Callback GAGAL: PHP server tidak dapat dijangkau di '{PHP_CALLBACK_URL}'. Worker tetap berjalan.")
+        except httpx.TimeoutException:
+            print(f"[Consumer] ✗ Callback TIMEOUT ke '{PHP_CALLBACK_URL}'. Worker tetap berjalan.")
+        except Exception as e:
+            print(f"[Consumer] ✗ Callback error tak terduga: {e}. Worker tetap berjalan.")
+
+async def start_consumer(connection: aio_pika.RobustConnection, old_model_placeholder=None) -> None:
+    global model_rf, label_encoder
+    if old_model_placeholder is not None:
+        model_rf = old_model_placeholder.get('model')
+        label_encoder = old_model_placeholder.get('encoder')
+    try:
+        load_models()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print("[Consumer] ⚠️ Peringatan Critical: File model 'comfort_classifier.pkl' tidak ditemukan atau gagal dimuat di memori!")
+        
+    channel = await connection.channel()
+    await channel.set_qos(prefetch_count=1)
+    queue = await channel.declare_queue("telemetry_ml_queue", durable=True)
+    
+    print("[Consumer] ✓ Standby menunggu queue 'telemetry_ml_queue'...")
+    await queue.consume(
+        lambda msg: asyncio.ensure_future(process_message(msg))
+    )
+    
+    await asyncio.Future()
