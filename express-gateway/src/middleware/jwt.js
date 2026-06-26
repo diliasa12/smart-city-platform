@@ -14,6 +14,8 @@ const PUBLIC_PATHS = [
   "/oauth/token",
   "/oauth/introspect",
   "/oauth/revoke",
+  "/php/api/telemetry/callback",
+  "/php/api/rooms",
 ];
 
 async function verifyJWT(req, res, next) {

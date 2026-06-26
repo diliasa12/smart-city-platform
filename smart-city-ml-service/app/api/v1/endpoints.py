@@ -11,7 +11,7 @@ from fastapi import APIRouter
 router = APIRouter()
 
 # URL Callback
-PHP_CALLBACK_URL = os.getenv("PHP_CALLBACK_URL", "http://localhost:3000/api/telemetry/callback")
+PHP_CALLBACK_URL = os.getenv("PHP_CALLBACK_URL", "http://php-service:8000/api/telemetry/callback")
 
 model_rf = None
 label_encoder = None
