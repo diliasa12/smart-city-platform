@@ -103,7 +103,7 @@ services:
       - APP_NAME=SmartCity
       - APP_ENV=local
       - APP_DEBUG=true
-      - APP_URL=http://localhost:8000
+      - APP_URL=http://php-service:8000
       - APP_KEY=${PHP_APP_KEY}
       - ASSET_URL=http://localhost:8000
       - DB_CONNECTION=mysql
@@ -144,6 +144,9 @@ services:
     restart: always
     ports:
       - "5000:5000"
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/  # tambah ini
+      - PHP_CALLBACK_URL=http://php-service:8000/api/telemetry/callback  
     # volumes:
     #   - ./smart-city-ml-service:/app
     networks:
@@ -157,6 +160,7 @@ services:
     command: python -m app.worker 
     environment:
       - RABBITMQ_HOST=rabbitmq
+      - PHP_CALLBACK_URL=http://php-service:8000/api/telemetry/callback
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -165,3 +169,5 @@ services:
     networks:
       - smartcity-net
     restart: always
+    healthcheck:
+      disable: true 
