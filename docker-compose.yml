@@ -1,7 +1,6 @@
 networks:
   smartcity-net:
     driver: bridge
-    
 
 volumes:
   mysql-data:
@@ -27,6 +26,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
   phpmyadmin:
     image: phpmyadmin:latest
     hostname: localhost
@@ -38,6 +38,7 @@ services:
       - PMA_HOST=mysql
     networks:
       - smartcity-net
+
   rabbitmq:
     image: rabbitmq:3.12-management
     container_name: smartcity-rabbitmq
@@ -48,8 +49,12 @@ services:
       - rabbitmq-data:/var/lib/rabbitmq
     networks:
       - smartcity-net
-
-  # FIX: oauth-server port luar diubah ke 5001 agar tidak bentrok dengan python-ml di 5000
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  # ── OAUTH & GATEWAY ────────────────────────────────────────────────────────
   oauth-server:
     build:
       context: ./oauth-server
@@ -72,9 +77,6 @@ services:
     networks:
       - smartcity-net
 
- 
-
-  # ── SERVICES ───────────────────────────────────────────────────────────────
   api-gateway:
     build: ./express-gateway
     container_name: smartcity-api-gateway
@@ -89,14 +91,17 @@ services:
     networks:
       - smartcity-net
 
+  # ── CORE SERVICES (PHP & IOT) ──────────────────────────────────────────────
   php-service:
     build: ./php-service
     container_name: smartcity-service
     ports:
-    - "8000:8000"
+      - "8000:8000"
+    volumes:
+      - ./php-service:/var/www/html
     environment:
       - APP_NAME=SmartCity
-      - APP_ENV=production
+      - APP_ENV=local
       - APP_DEBUG=true
       - APP_URL=http://localhost:8000
       - APP_KEY=${PHP_APP_KEY}
@@ -107,15 +112,18 @@ services:
       - DB_DATABASE=smartcity
       - DB_USERNAME=root
       - DB_PASSWORD=rootpass
-      - IOT_SERVICE_URL=${IOT_URL}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - IOT_SERVICE_URL=http://iot-service:3000
       - SESSION_DRIVER=database
       - QUEUE_CONNECTION=database
       - CACHE_STORE=database
-
       - JWT_SECRET=${JWT_SECRET}
     depends_on:
       mysql:
         condition: service_healthy
+      rabbitmq:
+        condition: service_started
     networks:
       - smartcity-net
 
@@ -126,3 +134,34 @@ services:
       - "3001:3000"
     networks:
       - smartcity-net
+
+  # ── MACHINE LEARNING ───────────────────────────────────────────────────────
+  python-ml:
+    build:
+      context: ./smart-city-ml-service
+      dockerfile: Dockerfile
+    container_name: smartcity-ml
+    restart: always
+    ports:
+      - "5000:5000"
+    # volumes:
+    #   - ./smart-city-ml-service:/app
+    networks:
+      - smartcity-net
+
+  python-ml-worker:
+    build:
+      context: ./smart-city-ml-service
+      dockerfile: Dockerfile
+    container_name: smartcity-python-worker
+    command: python -m app.worker 
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    # volumes:
+    #   - ./smart-city-ml-service:/app
+    networks:
+      - smartcity-net
+    restart: always
