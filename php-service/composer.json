@@ -78,7 +78,9 @@
             "dont-discover": [
                 "laravel/pail",
                 "laravel/pao",
-                "nunomaduro/collision"
+                "nunomaduro/collision",
+                "pestphp/pest",
+                "pestphp/pest-plugin-laravel"
             ]
         }
     },

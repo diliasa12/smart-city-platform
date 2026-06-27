@@ -1,0 +1,143 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-service
+  namespace: smartcity
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php-service
+  template:
+    metadata:
+      labels:
+        app: php-service
+    spec:
+      containers:
+        - name: php-service
+          image: smartcity-php-service:latest
+          imagePullPolicy: Never
+          securityContext:
+            runAsUser: 0
+          ports:
+            - containerPort: 8000
+          env:
+            - name: APP_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: APP_NAME
+            - name: APP_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: APP_ENV
+            - name: APP_DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: APP_DEBUG
+            - name: APP_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: APP_URL
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: smartcity-secrets
+                  key: PHP_APP_KEY
+            - name: ASSET_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: ASSET_URL
+            - name: DB_CONNECTION
+              value: "mysql"
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: DB_PORT
+            - name: DB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: DB_DATABASE
+            - name: DB_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartcity-secrets
+                  key: DB_PASSWORD
+            - name: IOT_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: IOT_URL
+            - name: SESSION_DRIVER
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: SESSION_DRIVER
+            - name: QUEUE_CONNECTION
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: QUEUE_CONNECTION
+            - name: CACHE_STORE
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: CACHE_STORE
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smartcity-secrets
+                  key: JWT_SECRET
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: RABBITMQ_HOST
+            - name: RABBITMQ_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: RABBITMQ_PORT
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: smartcity-secrets
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartcity-secrets
+                  key: RABBITMQ_PASSWORD
+            - name: RABBITMQ_TELEMETRY_QUEUE
+              valueFrom:
+                configMapKeyRef:
+                  name: smartcity-config
+                  key: RABBITMQ_TELEMETRY_QUEUE
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-service-service
+  namespace: smartcity
+spec:
+  selector:
+    app: php-service
+  ports:
+    - port: 8000
+      targetPort: 8000
