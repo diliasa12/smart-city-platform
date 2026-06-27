@@ -5,7 +5,7 @@ import os
 
 # Path resolusi dari lokasi script 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-data_path = os.path.join(BASE_DIR, 'data', 'room_occupancy.csv')
+data_path = os.path.join(BASE_DIR, 'data', 'smart_ml_dataset.csv')
 model_dir = os.path.join(BASE_DIR, 'models')
 
 print(f"[Train BusyHour] Membaca dataset dari: {data_path}")
@@ -18,9 +18,7 @@ df = pd.read_csv(data_path)
 df.columns = df.columns.str.strip()
 
 # Preprocessing
-df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S').dt.hour
-
-features = ['S1_Temp', 'S1_Sound']
+features = ['suhu', 'kelembaban', 'kebisingan']
 
 missing = [f for f in features if f not in df.columns]
 if missing:
@@ -29,7 +27,7 @@ if missing:
     exit(1)
 
 X = df[features]
-y = df['Time']
+y = df['hour']
 
 # Training
 model = RandomForestRegressor(n_estimators=100, random_state=42)
