@@ -16,7 +16,7 @@ spec:
       containers:
         - name: oauth-server
           image: smartcity-oauth-server:latest
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3002
           env:
