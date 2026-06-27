@@ -21,12 +21,15 @@ RUN echo "[ML Build] Memulai training comfort model..." && \
     python training/train_comfort_model.py && \
     echo "[ML Build] Memulai training busy hour model..." && \
     python training/train_busy_hour_model.py && \
+    echo "[ML Build] Memulai training anomaly detector model..." && \
+    python training/train_anomaly_model.py && \
     echo "[ML Build] Semua model berhasil di-training!"
 
 # Verifikasi .pkl ada sebelum lanjut
 RUN ls -lh models/ && \
     test -f models/comfort_classifier.pkl || (echo "ERROR: comfort_classifier.pkl tidak terbentuk!" && exit 1) && \
-    test -f models/busy_hour_model.pkl || (echo "ERROR: busy_hour_model.pkl tidak terbentuk!" && exit 1)
+    test -f models/busy_hour_model.pkl || (echo "ERROR: busy_hour_model.pkl tidak terbentuk!" && exit 1) && \
+    test -f models/anomaly_detector.pkl || (echo "ERROR: anomaly_detector.pkl tidak terbentuk!" && exit 1)
 
 
 # ── Stage 2: Production image (lebih kecil, tanpa training overhead) ─────────

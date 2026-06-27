@@ -6,6 +6,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 from app.api.v1.seat_recommendation import router as seat_router
+from app.api.v1.endpoints import router as ml_router
 from app.core.model_loader import load_comfort_model
 
 @asynccontextmanager
@@ -30,6 +31,7 @@ app = FastAPI(
 )
 
 app.include_router(seat_router, prefix="/api/v1", tags=["Seat Recommendation"])
+app.include_router(ml_router, prefix="/api/v1", tags=["ML Predictions"])
 
 @app.get("/", tags=["Root"])
 def read_root():

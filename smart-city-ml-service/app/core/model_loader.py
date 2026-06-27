@@ -16,3 +16,9 @@ def load_busy_hour_model():
     if not os.path.exists(path):
         raise FileNotFoundError(f"Berkas model tidak ditemukan di: {path}")
     return joblib.load(path)
+
+def load_anomaly_model():
+    path = get_model_path('anomaly_detector.pkl')
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Berkas model tidak ditemukan di: {path}")
+    return joblib.load(path)
