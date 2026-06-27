@@ -45,9 +45,7 @@ def process_message(ch, method, properties, body):
         comfort_pred = int(comfort_model.predict(comfort_features)[0])
         status_kenyamanan = label_encoder.inverse_transform([comfort_pred])[0]
 
-        busy_features = np.array([[
-            temperature, 300.0, decibel_level, 400.0, 1
-        ]])
+        busy_features = np.array([[temperature, decibel_level]])
         busy_pred = int(busy_hour_model.predict(busy_features)[0])
 
         print(f" Hasil: {status_kenyamanan}, jam sibuk: {busy_pred}")

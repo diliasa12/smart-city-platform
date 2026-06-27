@@ -43,7 +43,7 @@ def main():
     accuracy = model.score(X_test, y_test)
     print(f"Akurasi model pada data test: {accuracy * 100:.2f}%")
     
-    # ─── DI SINI KITA SATUKAN KE DALAM DICTIONARY ───
+    # ─── DI SINI SATUKAN KE DALAM DICTIONARY ───
     payload_to_save = {
         'model': model,
         'encoder': le
@@ -52,7 +52,7 @@ def main():
     # Sesuaikan nama file ke rancangan awal: comfort_classifier.pkl
     model_path = os.path.join(models_dir, 'comfort_classifier.pkl')
     
-    # Cukup dump satu file ini saja
+    # dump satu file ini saja
     joblib.dump(payload_to_save, model_path)
     
     print(f"Model dan Encoder SUKSES disatukan ke: {model_path}")
