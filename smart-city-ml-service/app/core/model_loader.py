@@ -12,7 +12,7 @@ def load_comfort_model():
     return joblib.load(path)
 
 def load_busy_hour_model():
-    path = get_model_path('busy_hour_forecaster.pkl')
+    path = get_model_path('busy_hour_model.pkl')
     if not os.path.exists(path):
         raise FileNotFoundError(f"Berkas model tidak ditemukan di: {path}")
     return joblib.load(path)

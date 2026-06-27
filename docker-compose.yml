@@ -49,7 +49,11 @@ services:
       - rabbitmq-data:/var/lib/rabbitmq
     networks:
       - smartcity-net
-
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   # ── OAUTH & GATEWAY ────────────────────────────────────────────────────────
   oauth-server:
     build:
@@ -95,12 +99,11 @@ services:
       - "8000:8000"
     volumes:
       - ./php-service:/var/www/html
-      - /var/www/html/vendor
     environment:
       - APP_NAME=SmartCity
       - APP_ENV=local
       - APP_DEBUG=true
-      - APP_URL=http://localhost:8000
+      - APP_URL=http://php-service:8000
       - APP_KEY=${PHP_APP_KEY}
       - ASSET_URL=http://localhost:8000
       - DB_CONNECTION=mysql
@@ -141,8 +144,11 @@ services:
     restart: always
     ports:
       - "5000:5000"
-    volumes:
-      - ./smart-city-ml-service:/app
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/  # tambah ini
+      - PHP_CALLBACK_URL=http://php-service:8000/api/telemetry/callback  
+    # volumes:
+    #   - ./smart-city-ml-service:/app
     networks:
       - smartcity-net
 
@@ -154,10 +160,14 @@ services:
     command: python -m app.worker 
     environment:
       - RABBITMQ_HOST=rabbitmq
+      - PHP_CALLBACK_URL=http://php-service:8000/api/telemetry/callback
     depends_on:
-      - rabbitmq
-    volumes:
-      - ./smart-city-ml-service:/app
+      rabbitmq:
+        condition: service_healthy
+    # volumes:
+    #   - ./smart-city-ml-service:/app
     networks:
       - smartcity-net
     restart: always
+    healthcheck:
+      disable: true 

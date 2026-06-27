@@ -3,33 +3,30 @@ from sklearn.ensemble import RandomForestRegressor
 import joblib
 import os
 
+# Path resolusi konsisten dari lokasi script ini
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+data_path = os.path.join(BASE_DIR, 'data', 'room_occupancy.csv')
+model_dir = os.path.join(BASE_DIR, 'models')
 
-base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-data_path = os.path.join(base_dir, 'data', 'room_occupancy.csv')
-
-print(f"Mencoba membaca file dari: {data_path}")
+print(f"[Train BusyHour] Membaca dataset dari: {data_path}")
 
 if not os.path.exists(data_path):
-    print(f"ERROR: File tidak ditemukan di {data_path}. Tolong cek lagi lokasinya!")
-    exit()
+    print(f"ERROR: File tidak ditemukan di {data_path}")
+    exit(1)
 
 df = pd.read_csv(data_path)
-
 df.columns = df.columns.str.strip()
 
 # Preprocessing
 df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S').dt.hour
 
-features = ['S1_Temp',  
-            'S1_Light', 
-            'S1_Sound',  
-            'S5_CO2', 'S6_PIR']
+features = ['S1_Temp', 'S1_Light', 'S1_Sound', 'S5_CO2', 'S6_PIR']
 
-# fitur di dataframe
-missing_features = [f for f in features if f not in df.columns]
-if missing_features:
-    print(f"ERROR: Kolom berikut tidak ada di CSV: {missing_features}")
-    exit()
+missing = [f for f in features if f not in df.columns]
+if missing:
+    print(f"ERROR: Kolom berikut tidak ada di CSV: {missing}")
+    print(f"Kolom tersedia: {list(df.columns)}")
+    exit(1)
 
 X = df[features]
 y = df['Time']
@@ -37,11 +34,10 @@ y = df['Time']
 # Training
 model = RandomForestRegressor(n_estimators=100, random_state=42)
 model.fit(X, y)
+print(f"[Train BusyHour] Training selesai dengan {len(X)} sampel.")
 
 # Save
-model_dir = os.path.join(base_dir, 'models')
-if not os.path.exists(model_dir):
-    os.makedirs(model_dir)
-
-joblib.dump(model, os.path.join(model_dir, 'busy_hour_forecaster.pkl'))
-print("busy_hour_forecaster.pkl berhasil dibuat!")
+os.makedirs(model_dir, exist_ok=True)
+output_path = os.path.join(model_dir, 'busy_hour_model.pkl')
+joblib.dump(model, output_path)
+print(f"[Train BusyHour] Model disimpan ke: {output_path}")

@@ -17,6 +17,8 @@ spec:
         - name: php-service
           image: smartcity-php-service:latest
           imagePullPolicy: Never
+          securityContext:
+            runAsUser: 0
           ports:
             - containerPort: 8000
           env:
