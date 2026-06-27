@@ -16,7 +16,7 @@ spec:
       containers:
         - name: iot-service
           image: smartcity-iot:latest
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
 ---
