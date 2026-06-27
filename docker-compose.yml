@@ -147,6 +147,7 @@ services:
     environment:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/  # tambah ini
       - PHP_CALLBACK_URL=http://php-service:8000/api/telemetry/callback  
+      - TZ=Asia/Jakarta
     # volumes:
     #   - ./smart-city-ml-service:/app
     networks:

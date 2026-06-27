@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np  
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from datetime import datetime
 
 router = APIRouter()
 
@@ -102,10 +103,24 @@ async def predict_busy_hour_api(req: BusyHourRequest):
         features = np.array([[req.temperature_c, req.humidity_pct, req.decibel_level]])
         predicted_hour = int(busy_hour_model.predict(features)[0])
         
+        # Hitung selisih waktu
+        now = datetime.now()
+        current_hour = now.hour
+        
+      # Logika pesan berdasarkan waktu
+        if predicted_hour > current_hour:
+            # Jika jam sibuk masih di hari ini
+            hours_remaining = predicted_hour - current_hour
+            message = f"Ruangan diprediksi sibuk dalam {hours_remaining} jam lagi (pukul {predicted_hour}:00 WIB)."
+        else:
+            # Jika jam sibuk sudah lewat hari ini, maka diprediksi untuk besok
+            message = f"Ruangan sudah lewat jam sibuk hari ini. Ruangan besok diprediksi sibuk pada pukul {predicted_hour}:00 WIB."
+
         return {
             "status": "success",
             "room_id": req.room_id,
-            "predicted_next_busy_hour": predicted_hour
+            "predicted_next_busy_hour": predicted_hour,
+            "message": message
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
