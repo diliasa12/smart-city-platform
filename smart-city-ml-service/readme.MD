@@ -13,23 +13,24 @@ smart-city-ml-service/
 │   │   ├── config.py             # Pembacaan environment variabel & kredensial
 │   │   └── model_loader.py       # Pemuat berkas model prediksi (.pkl)
 ├── data/                         # PENYIMPANAN DATASET (CSV)
-│   ├── room_occupancy.csv        # Dataset okupansi & sensor
-│   └── urban_noise_levels.csv    # Dataset kebisingan kota
+│   ├── smart_ml_dataset.csv      # Dataset utama (Suhu, Kebisingan, Waktu, dll)
 │   ├── models/
 │   │   ├── comfort_classifier.pkl # Model klasifikasi kenyamanan ruangan (Random Forest)
-│   │   └── busy_hour_forecaster.pkl # Model forecasting tren jam sibuk (Placeholder)
+│   │   └── busy_hour_model.pkl     # Model tren jam sibuk (Random Forest Regressor)
+│   └── anomaly_detector.pkl         # Model deteksi anomali sensor (Isolation Forest)
 ├── training/                     # SCRIPT TRAINING
-│   ├── train_comfort_model.py    # Training menggunakan urban_noise_levels.csv
-│   └── train_busy_hour_model.py  # Training menggunakan room_occupancy.csv
-│   └── main.py                   # Inisialisasi framework FastAPI
+│   ├── train_comfort_model.py       # Training menggunakan smart_ml_dataset.csv
+│   ├── train_busy_hour_model.py     # Training menggunakan smart_ml_dataset.csv
+│   └── train_anomaly_model.py       # Training menggunakan smart_ml_dataset.csv
+├── main.py                         # Inisialisasi framework FastAPI
 ├── Dockerfile                    # Konfigurasi container untuk Docker
 ├── requirements.txt              # Dependensi Python (pandas, scikit-learn, librosa, dsb)
 └── readme.MD                     # Dokumentasi servis ini
 
 ## Data Pipeline
-Servis ini kini menggunakan dataset dunia nyata untuk akurasi prediksi yang lebih baik:
-1. Urban Noise Levels: Digunakan untuk mengklasifikasikan status kebisingan ruangan berdasarkan fitur lingkungan (suhu, kelembapan, dsb).
-2. Room Occupancy: Digunakan untuk memprediksi jam sibuk ruangan berdasarkan data sensor (PIR, CO2, Cahaya, Suhu).
+Servis ini menggunakan dataset dunia nyata terpusat untuk akurasi prediksi dan sinkronisasi fitur yang lebih baik:
+
+1. smart_ml_dataset.csv: Satu dataset utama yang mencakup fitur lingkungan terintegrasi (device_id, suhu, kelembaban, kebisingan, hour, is_weekend, timestamp, ml_classification_status). Digunakan serentak oleh ketiga skrip training untuk menjamin konsistensi pola data.
 
 ## Langkah Instalansi & Menjalankan Lokal
 
@@ -38,7 +39,7 @@ Servis ini sudah dikonfigurasi untuk berjalan mulus bersama servis SmartCity lai
 1. Buka terminal dan pastikan berada di root folder proyek utama (misal: `smart-city-platform/`)
 2. Jalankan perintah eksekusi Docker:
 ``` text
-docker-compose up -d --build
+docker compose up -d --build python-ml
 
 3. Servis ML akan menyala di dalam container bernama smartcity-ml.
 
@@ -57,9 +58,13 @@ pip install -r requirements.txt
 ### Integrasi API
 1. Base URL: `http://localhost:5000`
 2. Klasifikasi Kenyamanan: POST /api/v1/analyze-comfort
-Input: 8 parameter lingkungan (suhu, kelembapan, dll).
+- Input: 5 parameter (temperature_c, humidity_pct, decibel_level, hour, is_weekend).
 3. Prediksi Jam Sibuk: POST /api/v1/predict-busy-hour
-Input: 5 parameter sensor (suhu, cahaya, suara, CO2, PIR).
+- Input: 4 parameter (room_id, temperature_c, humidity_pct, decibel_level).
+- Output: Mengembalikan prediksi jam sibuk dalam angka format 24 jam serta pesan dinamis berbasis waktu lokal Jakarta (WIB) mengenai estimasi sisa waktu kesibukan (hari ini/besok).
+4. Deteksi Anomali Sensor: POST /api/v1/detect-anomaly
+- Input: 4 parameter (temperature_c, humidity_pct, decibel_level, hour).
+- Output: Status boolean is_anomaly (true/false) untuk memvalidasi kesehatan data sensor dari kerusakan atau nilai ekstrem.
 
 ### Menjalankan Server API ML
 ``` uvicorn app.main:app --reload --port 5000

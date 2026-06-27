@@ -4,13 +4,14 @@ import requests
 import numpy as np
 import time
 import os
-from app.core.model_loader import load_comfort_model, load_busy_hour_model
+from app.core.model_loader import load_comfort_model, load_busy_hour_model, load_anomaly_model
 
 # Load model — unpack dict
 saved = load_comfort_model()
 comfort_model = saved['model']
 label_encoder = saved['encoder']
 busy_hour_model = load_busy_hour_model()
+anomaly_detector = load_anomaly_model()
 
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
 QUEUE_NAME = "telemetry_ml_queue"
@@ -37,24 +38,30 @@ def process_message(ch, method, properties, body):
         temperature = float(payload.get("temperature", 0.0))
         humidity = float(payload.get("humidity", 0.0))
         decibel_level = float(payload.get("decibel_level", 0.0))
+        hour = int(payload.get("hour", 12))
+        is_weekend = int(payload.get("is_weekend", 0))
         callback_url = payload.get("callback_url")
 
         comfort_features = np.array([[
-            temperature, humidity, decibel_level, 0, 0
+            temperature, humidity, decibel_level, hour, is_weekend
         ]])
         comfort_pred = int(comfort_model.predict(comfort_features)[0])
         status_kenyamanan = label_encoder.inverse_transform([comfort_pred])[0]
 
-        busy_features = np.array([[temperature, decibel_level]])
+        busy_features = np.array([[temperature, humidity, decibel_level]])
         busy_pred = int(busy_hour_model.predict(busy_features)[0])
 
-        print(f" Hasil: {status_kenyamanan}, jam sibuk: {busy_pred}")
+        anomaly_features = np.array([[temperature, humidity, decibel_level, hour]])
+        is_anomaly = bool(anomaly_detector.predict(anomaly_features)[0] == -1)
+
+        print(f" Hasil: {status_kenyamanan}, jam sibuk: {busy_pred}, anomali: {is_anomaly}")
 
         if callback_url:
             result_payload = {
                 "telemetry_log_id": payload["log_id"],
                 "ml_classification_status": status_kenyamanan,
-                "predicted_next_busy_hour": busy_pred
+                "predicted_next_busy_hour": busy_pred,
+                "is_anomaly": is_anomaly
             }
             try:
                 response = requests.post(callback_url, json=result_payload, timeout=30)  # naik dari 5 → 30
