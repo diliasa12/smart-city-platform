@@ -23,6 +23,7 @@ smart-city-ml-service/
 │   ├── train_busy_hour_model.py     # Training menggunakan smart_ml_dataset.csv
 │   └── train_anomaly_model.py       # Training menggunakan smart_ml_dataset.csv
 ├── main.py                         # Inisialisasi framework FastAPI
+├── worker.py                        # Script consumer RabbitMQ untuk memproses telemetri asinkron & kirim callback
 ├── Dockerfile                    # Konfigurasi container untuk Docker
 ├── requirements.txt              # Dependensi Python (pandas, scikit-learn, librosa, dsb)
 └── readme.MD                     # Dokumentasi servis ini
@@ -65,6 +66,11 @@ pip install -r requirements.txt
 4. Deteksi Anomali Sensor: POST /api/v1/detect-anomaly
 - Input: 4 parameter (temperature_c, humidity_pct, decibel_level, hour).
 - Output: Status boolean is_anomaly (true/false) untuk memvalidasi kesehatan data sensor dari kerusakan atau nilai ekstrem.
+
+### Menjalankan Worker RabbitMQ (Lokal)
+Worker ini bertugas mendengarkan antrean data sensor secara real-time dari RabbitMQ, memprosesnya melalui ke-3 model ML, dan mengirimkan hasilnya kembali (callback) ke backend utama.
+``` text
+python worker.py
 
 ### Menjalankan Server API ML
 ``` uvicorn app.main:app --reload --port 5000
