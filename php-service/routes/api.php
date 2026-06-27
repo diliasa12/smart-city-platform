@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\ZoneController;
 use App\Http\Controllers\TelemetryController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Users\SeatRecommendationController;
+use App\Http\Controllers\Admin\AdminSeatBookingController;
 
 Route::get('/health', fn () => response()->json([
     'status' => 'ok',
@@ -46,5 +47,14 @@ Route::middleware('gateway.auth')->group(function () {
         Route::get('/admin/rooms/{id}', [RoomController::class, 'show']);
         Route::put('/admin/rooms/{id}', [RoomController::class, 'update']);
         Route::delete('/admin/rooms/{id}', [RoomController::class, 'destroy']);
+
+        // Booking Management
+        Route::get('/admin/bookings', [AdminSeatBookingController::class, 'index']);
+        Route::get('/admin/bookings/{id}', [AdminSeatBookingController::class, 'show']);
+        Route::patch('/admin/bookings/{id}/approve', [AdminSeatBookingController::class, 'approve']);
+        Route::patch('/admin/bookings/{id}/reject', [AdminSeatBookingController::class, 'reject']);
+        Route::post('/admin/bookings/bulk-approve', [AdminSeatBookingController::class, 'bulkApprove']);
+        Route::post('/admin/bookings/bulk-reject', [AdminSeatBookingController::class, 'bulkReject']);
+
     });
 });
