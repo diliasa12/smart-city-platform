@@ -19,12 +19,14 @@ class EnvRoomTelemetryLog extends Model
     'ml_status',                  
     'ml_classification_status',
     'predicted_next_busy_hour',
+    'is_anomaly',
 ];
     protected $casts = [
         'temperature' => 'float',
         'humidity'    => 'float',
         'decibel_level' => 'float',
         'predicted_next_busy_hour' => 'integer',
+        'is_anomaly'  => 'boolean',
         'created_at'  => 'datetime',
     ];
 

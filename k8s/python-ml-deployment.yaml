@@ -69,7 +69,7 @@ spec:
         - name: python-ml-worker
           image: diliasa/python-ml:v1.0
           imagePullPolicy: IfNotPresent
-          command: ["sh", "-c", "while true; do sleep 3600; done"]
+          command: ["python", "-m", "app.worker"]
           env:
             - name: RABBITMQ_HOST
               valueFrom:
@@ -86,8 +86,6 @@ spec:
                 configMapKeyRef:
                   name: smartcity-config
                   key: RABBITMQ_TELEMETRY_QUEUE
-            - name: PHP_CALLBACK_BASE_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: smartcity-config
-                  key: APP_URL
+            - name: PHP_CALLBACK_URL
+              value: "http://php-service-service:8000/api/telemetry/callback"
+
