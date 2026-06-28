@@ -103,7 +103,7 @@ class SeatRecommendationController extends Controller
         ];
 
         try {
-            $mlUrl  = rtrim(env('ML_SERVICE_URL', 'http://python-ml:5000'), '/');
+            $mlUrl  = rtrim(env('ML_SERVICE_URL', 'http://python-ml-service:5000'), '/');
             $mlResp = Http::timeout(5)->post("{$mlUrl}/api/v1/recommend-seats", $payload);
 
             if (!$mlResp->successful()) {

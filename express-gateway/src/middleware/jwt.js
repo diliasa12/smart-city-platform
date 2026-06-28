@@ -15,25 +15,28 @@ const PUBLIC_PATHS = [
   "/oauth/introspect",
   "/oauth/revoke",
   "/php/api/telemetry/callback",
-  "/php/api/rooms",
+  "/php/api/telemetry",
 ];
 
-async function verifyJWT(req, res, next) {
- const isPublic = PUBLIC_PATHS.some((p) => {
-    if (p === "/php/api/rooms") {
-      if (
-        req.originalUrl.includes("/busy-hour") ||
-        req.originalUrl.includes("/recommend-seats")
-      ) {
-        return false;
-      }
-    }
-    return req.originalUrl.startsWith(p);
-  });
+const PUBLIC_EXACT_PATHS = ["/php/api/rooms"];
 
-  if (isPublic) {
+// Tambah logic di fungsi verifyJWT:
+async function verifyJWT(req, res, next) {
+  const isPublic = PUBLIC_PATHS.some((p) => req.originalUrl.startsWith(p));
+
+  // Exact match untuk /php/api/rooms (tanpa subpath)
+  const isPublicExact = PUBLIC_EXACT_PATHS.some(
+    (p) => req.originalUrl === p || req.originalUrl.startsWith(p + "?"),
+  );
+
+  // Subpath yang memang public
+  const isPublicRoomPath =
+    req.originalUrl.match(/^\/php\/api\/rooms\/\d+\/comfort/) !== null;
+
+  if (isPublic || isPublicExact || isPublicRoomPath) {
     return next();
   }
+  // ... sisa kode sama
 
   const authHeader = req.headers["authorization"] || "";
   if (!authHeader.startsWith("Bearer ")) {

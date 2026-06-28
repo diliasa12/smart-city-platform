@@ -121,65 +121,69 @@ class EnvRoomController extends Controller
      * PREDICT BUSY HOUR (Machine Learning Integration)
      * Mengambil data historis decibel 12 jam terakhir, lalu meminta prediksi ke Python ML Service.
      */
-    public function predictBusyHour(int $id): JsonResponse
-    {
-        //  Cek ketersediaan ruangan
-        $room = EnvRoom::find($id);
+   public function predictBusyHour(int $id): JsonResponse
+{
+    // Cek ketersediaan ruangan
+    $room = EnvRoom::find($id);
 
-        if (!$room) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Ruangan tidak ditemukan.'
-            ], 404);
-        }
-
-        // Tarik data historis dari tabel env_room_telemetry_logs (1 menit terakhir) lalu hitung rata-rata decibel per jam
-        $historicalData = DB::table('env_room_telemetry_logs')
-            ->select(DB::raw('HOUR(created_at) as hour, AVG(decibel_level) as avg_decibel'))
-            ->where('room_id', $id)
-            ->where('created_at', '>=', now()->subMinutes(1))
-            ->groupBy('hour')
-            ->orderBy('hour')
-            ->pluck('avg_decibel')
-            ->map(fn($val) => (float) $val) // Pastikan float
-            ->toArray();
-
-        // Validasi jika data kosong 
-        if (empty($historicalData)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Data historis kebisingan belum mencukupi untuk diprediksi.'
-            ], 400);
-        }
-
-        try {
-            // Hit service Python internal via container name 
-            $response = Http::timeout(5)->post('http://python-ml:5000/api/v1/predict-busy-hour', [
-                'room_id' => $id,
-                'historical_decibels' => $historicalData
-            ]);
-
-            // Kembalikan respons sesuai hasil dari Python
-            if ($response->successful()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Prediksi jam sibuk berhasil diproses.',
-                    'data' => $response->json()
-                ], 200);
-            }
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal memproses prediksi di ML Service.',
-                'error' => $response->json()
-            ], $response->status());
-
-        } catch (\Exception $e) {
-            // Tangkap error jika container Python mati atau tidak bisa diakses
-            return response()->json([
-                'success' => false,
-                'message' => 'Service ML (Python) tidak dapat dijangkau: ' . $e->getMessage()
-            ], 502); 
-        }
+    if (!$room) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Ruangan tidak ditemukan.'
+        ], 404);
     }
+
+    // Ambil telemetry terbaru untuk temperature & humidity
+    $latestTelemetry = DB::table('env_room_telemetry_logs')
+        ->where('room_id', $id)
+        ->orderBy('created_at', 'desc')
+        ->first(['temperature', 'humidity', 'decibel_level']);
+
+    if (!$latestTelemetry) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Data telemetry belum tersedia untuk ruangan ini.'
+        ], 400);
+    }
+
+    // Hitung rata-rata decibel 24 jam terakhir
+    $avgDecibel = DB::table('env_room_telemetry_logs')
+        ->where('room_id', $id)
+        ->where('created_at', '>=', now()->subHours(24))
+        ->avg('decibel_level');
+
+    // Fallback ke decibel terbaru jika tidak ada data historis
+    $avgDecibel = $avgDecibel 
+        ? (float) $avgDecibel 
+        : (float) $latestTelemetry->decibel_level;
+
+    try {
+      $response = Http::timeout(5)->post(env('ML_SERVICE_URL', 'http://python-ml-service:5000') . '/api/v1/predict-busy-hour', [
+            'room_id'       => $id,
+            'temperature_c' => (float) $latestTelemetry->temperature,
+            'humidity_pct'  => (float) $latestTelemetry->humidity,
+            'decibel_level' => $avgDecibel,
+        ]);
+
+        if ($response->successful()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Prediksi jam sibuk berhasil diproses.',
+                'data'    => $response->json()
+            ], 200);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal memproses prediksi di ML Service.',
+            'error'   => $response->json()
+        ], $response->status());
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Service ML (Python) tidak dapat dijangkau: ' . $e->getMessage()
+        ], 502);
+    }
+}
 }
