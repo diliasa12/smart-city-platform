@@ -18,7 +18,7 @@ df = pd.read_csv(data_path)
 df.columns = df.columns.str.strip()
 
 # Preprocessing
-features = ['suhu', 'kelembaban', 'kebisingan']
+features = ['temperature', 'humidity', 'decibel_level']
 
 missing = [f for f in features if f not in df.columns]
 if missing:

@@ -77,9 +77,9 @@ async def analyze_comfort_api(req: ComfortAnalyzeRequest):
         load_models()
         
         features = pd.DataFrame([{
-            'suhu': req.temperature_c,
-            'kelembaban': req.humidity_pct,
-            'kebisingan': req.decibel_level,
+            'temperature': req.temperature_c,
+            'humidity': req.humidity_pct,
+            'decibel_level': req.decibel_level,
             'hour': req.hour,
             'is_weekend': req.is_weekend
         }])
