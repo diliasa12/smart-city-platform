@@ -1,4 +1,4 @@
-device_id,suhu,kelembaban,kebisingan,hour,is_weekend,timestamp,ml_classification_status
+room_id,temperature,humidity,decibel_level,hour,is_weekend,timestamp,ml_classification_status
 esp32-room3,22.4,49.8,27.0,23,1,1000074,nyaman
 esp32-room3,19.7,46.4,23.2,0,0,1000205,nyaman
 esp32-room3,25.9,64.1,62.2,17,0,1000316,cukup_nyaman

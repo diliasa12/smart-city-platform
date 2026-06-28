@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: oauth-server
-          image: smartcity-oauth-server:latest
+          image: diliasa/oauth-server:v1.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3002

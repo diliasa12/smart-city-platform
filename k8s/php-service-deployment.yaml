@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: php-service
-          image: smartcity-php-service:latest
+          image: diliasa/php-service:v1.1
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 0
@@ -133,11 +133,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: php-service-service
+  name: php-service
   namespace: smartcity
 spec:
   selector:
     app: php-service
   ports:
-    - port: 8000
+    - protocol: TCP
+      port: 8000
       targetPort: 8000

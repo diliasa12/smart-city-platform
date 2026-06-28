@@ -23,7 +23,7 @@ def main():
         return
     
     # Memisahkan Fitur (X) dan Target (y)
-    X = df[['suhu', 'kelembaban', 'kebisingan', 'hour', 'is_weekend']]
+    X = df[['temperature', 'humidity', 'decibel_level', 'hour', 'is_weekend']]
     y_raw = df['ml_classification_status']
     
     # Encoding target string menjadi angka (0, 1, 2)

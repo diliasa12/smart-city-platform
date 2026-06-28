@@ -19,7 +19,7 @@ df.columns = df.columns.str.strip()
 
 # menggunakan suhu dan kebisingan sebagai fitur untuk mendeteksi anomali
 # Jika data sensor melompat jauh dari pola normal kedua fitur ini, akan dianggap anomali
-features = ['suhu', 'kelembaban', 'kebisingan', 'hour']
+features = ['temperature', 'humidity', 'decibel_level', 'hour']
 
 X = df[features]
 
