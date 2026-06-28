@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: iot-service
-          image: smartcity-iot:latest
+          image: diliasa/iot-service:v1.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000

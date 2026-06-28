@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: python-ml
-          image: smartcity-ml:latest
+          image: diliasa/python-ml:v1.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
