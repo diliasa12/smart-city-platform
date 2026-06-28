@@ -8,7 +8,7 @@ use App\Helpers\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
-class SeatBookingController extends Controller
+class AdminSeatBookingController extends Controller
 {
     /**
      * GET /api/admin/bookings
