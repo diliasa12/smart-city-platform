@@ -1,0 +1,1374 @@
+{
+  "info": {
+    "_postman_id": "smartcity-platform-v2-complete",
+    "name": "🏙️ Smart City Platform",
+    "description": "Postman collection lengkap untuk Smart City Platform.\n\n## Cara Penggunaan\n1. Import collection ini ke Postman\n2. Set environment variable:\n   - `BASE_URL` = `http://localhost:3000` (API Gateway)\n   - `OAUTH_URL` = `http://localhost:5001`\n   - `PHP_URL` = `http://localhost:8000`\n   - `IOT_URL` = `http://localhost:3001`\n   - `ML_URL` = `http://localhost:5000`\n3. Jalankan **\"Get Token (Admin)\"** di folder OAuth Server — token otomatis tersimpan ke `access_token`\n\n## Arsitektur\n- API Gateway (port 3000) → proxy ke semua service\n- OAuth Server (port 5001) → autentikasi JWT\n- PHP Service / Laravel (port 8000) → core backend\n- IoT Service (port 3001) → MQTT bridge\n- ML Service / FastAPI (port 5000) → prediksi AI",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "OAUTH_URL",
+      "value": "http://localhost:5001",
+      "type": "string"
+    },
+    {
+      "key": "PHP_URL",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "IOT_URL",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "ML_URL",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. OAuth Server",
+      "description": "Endpoint autentikasi OAuth2. Semua grant type didukung: password, client_credentials, dan refresh_token.",
+      "item": [
+        {
+          "name": "Get Token — Admin (Password Grant)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.access_token) {",
+                  "  pm.collectionVariables.set('access_token', res.data.access_token);",
+                  "  pm.collectionVariables.set('refresh_token', res.data.refresh_token || '');",
+                  "  console.log('✅ Admin token tersimpan.');",
+                  "}",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has access_token', () => pm.expect(res.data).to.have.property('access_token'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type",    "value": "password" },
+                { "key": "client_id",     "value": "laravel_web_dashboard" },
+                { "key": "client_secret", "value": "secret_dashboard" },
+                { "key": "username",      "value": "admin@smartcity.id" },
+                { "key": "password",      "value": "password123" },
+                { "key": "scope",         "value": "read write" }
+              ]
+            },
+            "url": {
+              "raw": "{{OAUTH_URL}}/token",
+              "host": ["{{OAUTH_URL}}"],
+              "path": ["token"]
+            },
+            "description": "Login sebagai admin. Token disimpan otomatis ke variabel `access_token`."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Token — Regular User (Password Grant)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.access_token) {",
+                  "  pm.collectionVariables.set('access_token', res.data.access_token);",
+                  "  pm.collectionVariables.set('refresh_token', res.data.refresh_token || '');",
+                  "  console.log('✅ User token tersimpan.');",
+                  "}",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type",    "value": "password" },
+                { "key": "client_id",     "value": "laravel_web_dashboard" },
+                { "key": "client_secret", "value": "secret_dashboard" },
+                { "key": "username",      "value": "budi@gmail.com" },
+                { "key": "password",      "value": "password123" },
+                { "key": "scope",         "value": "read" }
+              ]
+            },
+            "url": {
+              "raw": "{{OAUTH_URL}}/token",
+              "host": ["{{OAUTH_URL}}"],
+              "path": ["token"]
+            },
+            "description": "Login sebagai user biasa."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Token — IoT Gateway (Client Credentials)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.access_token) {",
+                  "  pm.collectionVariables.set('access_token', res.data.access_token);",
+                  "  console.log('✅ IoT service token tersimpan.');",
+                  "}",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type",    "value": "client_credentials" },
+                { "key": "client_id",     "value": "nodejs_iot_gateway" },
+                { "key": "client_secret", "value": "secret_gateway" }
+              ]
+            },
+            "url": {
+              "raw": "{{OAUTH_URL}}/token",
+              "host": ["{{OAUTH_URL}}"],
+              "path": ["token"]
+            },
+            "description": "Token untuk IoT Service / service-to-service communication (tidak butuh user)."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.access_token) {",
+                  "  pm.collectionVariables.set('access_token', res.data.access_token);",
+                  "  pm.collectionVariables.set('refresh_token', res.data.refresh_token || '');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type",    "value": "refresh_token" },
+                { "key": "refresh_token", "value": "{{refresh_token}}" },
+                { "key": "client_id",     "value": "laravel_web_dashboard" },
+                { "key": "client_secret", "value": "secret_dashboard" }
+              ]
+            },
+            "url": {
+              "raw": "{{OAUTH_URL}}/token",
+              "host": ["{{OAUTH_URL}}"],
+              "path": ["token"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Introspect Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "token", "value": "{{access_token}}" }
+              ]
+            },
+            "url": {
+              "raw": "{{OAUTH_URL}}/introspect",
+              "host": ["{{OAUTH_URL}}"],
+              "path": ["introspect"]
+            },
+            "description": "Cek validitas token. Mengembalikan payload JWT jika valid."
+          },
+          "response": []
+        },
+        {
+          "name": "Revoke Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "token",            "value": "{{access_token}}" },
+                { "key": "token_type_hint",  "value": "access_token" }
+              ]
+            },
+            "url": {
+              "raw": "{{OAUTH_URL}}/revoke",
+              "host": ["{{OAUTH_URL}}"],
+              "path": ["revoke"]
+            },
+            "description": "Batalkan (logout) token yang sedang aktif."
+          },
+          "response": []
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{OAUTH_URL}}/health",
+              "host": ["{{OAUTH_URL}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. API Gateway",
+      "description": "Semua request melalui API Gateway (port 3000). JWT wajib kecuali path public.\n\nPath proxy:\n- `/oauth/*` → OAuth Server (tanpa auth)\n- `/php/*`   → PHP Service (strip prefix `/php`)\n- `/ml/*`    → ML Service (strip prefix `/ml`)\n- `/iot/*`   → IoT Service (strip prefix `/iot`)",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/health",
+              "host": ["{{BASE_URL}}"],
+              "path": ["health"]
+            },
+            "description": "Cek status API Gateway. Path ini adalah public (tidak butuh token)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Rooms (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/php/api/rooms",
+              "host": ["{{BASE_URL}}"],
+              "path": ["php", "api", "rooms"]
+            },
+            "description": "Mengambil daftar ruangan melalui API Gateway → PHP Service."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Room Comfort (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/php/api/rooms/1/comfort",
+              "host": ["{{BASE_URL}}"],
+              "path": ["php", "api", "rooms", "1", "comfort"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Predict Busy Hour (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/php/api/rooms/1/busy-hour",
+              "host": ["{{BASE_URL}}"],
+              "path": ["php", "api", "rooms", "1", "busy-hour"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Store Telemetry (via Gateway)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"room_id\": 1,\n  \"temperature\": 27.5,\n  \"humidity\": 60,\n  \"decibel_level\": 55\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/php/api/telemetry",
+              "host": ["{{BASE_URL}}"],
+              "path": ["php", "api", "telemetry"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Analyze Comfort ML (via Gateway)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"temperature_c\": 27.5,\n  \"humidity_pct\": 60.0,\n  \"decibel_level\": 45.0,\n  \"hour\": 10,\n  \"is_weekend\": 0\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/ml/api/v1/analyze-comfort",
+              "host": ["{{BASE_URL}}"],
+              "path": ["ml", "api", "v1", "analyze-comfort"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All IoT Devices (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/iot/api/devices",
+              "host": ["{{BASE_URL}}"],
+              "path": ["iot", "api", "devices"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. PHP Service — Public",
+      "description": "Endpoint publik PHP Service (Laravel). Tidak memerlukan JWT.",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{PHP_URL}}/api/health",
+              "host": ["{{PHP_URL}}"],
+              "path": ["api", "health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Rooms",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{PHP_URL}}/api/rooms",
+              "host": ["{{PHP_URL}}"],
+              "path": ["api", "rooms"],
+              "query": [
+                { "key": "zone_id", "value": "1", "disabled": true }
+              ]
+            },
+            "description": "Ambil daftar semua ruangan aktif. Filter opsional: `?zone_id=1`."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Room Comfort Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{PHP_URL}}/api/rooms/1/comfort",
+              "host": ["{{PHP_URL}}"],
+              "path": ["api", "rooms", "1", "comfort"]
+            },
+            "description": "Ambil status kenyamanan terakhir ruangan (hasil ML: nyaman / cukup_nyaman / tidak_nyaman)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Room Comfort History (24 Jam)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{PHP_URL}}/api/rooms/1/comfort/history",
+              "host": ["{{PHP_URL}}"],
+              "path": ["api", "rooms", "1", "comfort", "history"]
+            },
+            "description": "Riwayat telemetri 24 jam terakhir untuk ruangan tertentu."
+          },
+          "response": []
+        },
+        {
+          "name": "Analyze Room Comfort (Legacy)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"room_id\": 1,\n  \"temperature\": 27.5,\n  \"humidity\": 55.0,\n  \"decibel_level\": 40.0\n}"
+            },
+            "url": {
+              "raw": "{{PHP_URL}}/api/room/analyze",
+              "host": ["{{PHP_URL}}"],
+              "path": ["api", "room", "analyze"]
+            },
+            "description": "Analisis kenyamanan ruangan via PHP → ML Service (endpoint warisan)."
+          },
+          "response": []
+        },
+        {
+          "name": "Store Telemetry (Manual)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"room_id\": 1,\n  \"temperature\": 27.5,\n  \"humidity\": 60,\n  \"decibel_level\": 65\n}"
+            },
+            "url": {
+              "raw": "{{PHP_URL}}/api/telemetry",
+              "host": ["{{PHP_URL}}"],
+              "path": ["api", "telemetry"]
+            },
+            "description": "Simpan data sensor secara manual. Data langsung dipublish ke RabbitMQ untuk diproses ML."
+          },
+          "response": []
+        },
+        {
+          "name": "ML Callback (Simulate)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telemetry_log_id\": 1,\n  \"ml_classification_status\": \"nyaman\",\n  \"predicted_next_busy_hour\": 10,\n  \"is_anomaly\": false\n}"
+            },
+            "url": {
+              "raw": "{{PHP_URL}}/api/telemetry/callback",
+              "host": ["{{PHP_URL}}"],
+              "path": ["api", "telemetry", "callback"]
+            },
+            "description": "Endpoint callback internal yang dipanggil oleh ML Worker setelah memproses telemetry.\n\nField `ml_classification_status`: `nyaman` | `cukup_nyaman` | `tidak_nyaman`\nField `is_anomaly`: boolean"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. PHP Service — User (Auth Required)",
+      "description": "Endpoint untuk pengguna terautentikasi (role: user atau admin).\n\nHeader wajib:\n- `Authorization: Bearer {{access_token}}`\n- `X-User-Id: <user_id>`\n- `X-User-Role: user`",
+      "item": [
+        {
+          "name": "Seat Bookings",
+          "item": [
+            {
+              "name": "Get My Bookings",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",   "value": "2" },
+                  { "key": "X-User-Role", "value": "user" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/bookings",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "bookings"]
+                },
+                "description": "Ambil semua booking milik user yang sedang login."
+              },
+              "response": []
+            },
+            {
+              "name": "Create Booking",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type",  "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "2" },
+                  { "key": "X-User-Role",  "value": "user" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"room_id\": 1,\n  \"seat_numbers\": [\"A1\", \"A2\"],\n  \"booking_date\": \"2026-07-10\",\n  \"start_time\": \"09:00\",\n  \"end_time\": \"11:00\"\n}"
+                },
+                "url": {
+                  "raw": "{{PHP_URL}}/api/bookings",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "bookings"]
+                },
+                "description": "Buat booking bangku baru. `seat_numbers` bisa berisi satu atau lebih nomor bangku."
+              },
+              "response": []
+            },
+            {
+              "name": "Cancel Booking",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "2" },
+                  { "key": "X-User-Role",  "value": "user" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/bookings/1",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "bookings", "1"]
+                },
+                "description": "Batalkan booking. Hanya booking milik user sendiri yang bisa dibatalkan."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Room Intelligence",
+          "item": [
+            {
+              "name": "Get Seat Recommendation",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "2" },
+                  { "key": "X-User-Role",  "value": "user" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/rooms/1/recommend-seats?booking_date=2026-07-10&start_time=09:00&end_time=11:00&seat_count=2",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "rooms", "1", "recommend-seats"],
+                  "query": [
+                    { "key": "booking_date", "value": "2026-07-10" },
+                    { "key": "start_time",   "value": "09:00" },
+                    { "key": "end_time",     "value": "11:00" },
+                    { "key": "seat_count",   "value": "2" },
+                    { "key": "rows",         "value": "4", "disabled": true },
+                    { "key": "cols",         "value": "6", "disabled": true }
+                  ]
+                },
+                "description": "Rekomendasi bangku terbaik berdasarkan:\n- Ketersediaan slot waktu\n- Popularitas historis bangku (30 hari)\n- Kondisi kenyamanan ruangan saat ini (dari ML)\n\nQuery params wajib: `booking_date`, `start_time`, `end_time`\nQuery params opsional: `seat_count` (default 1), `rows`, `cols` (ukuran grid)"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Busy Hour Prediction",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "2" },
+                  { "key": "X-User-Role",  "value": "user" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/rooms/1/busy-hour",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "rooms", "1", "busy-hour"]
+                },
+                "description": "Prediksi jam sibuk berikutnya untuk ruangan, berdasarkan data historis kebisingan 12 jam terakhir."
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. PHP Service — Admin (Auth Required)",
+      "description": "Endpoint manajemen platform untuk role admin.\n\nHeader wajib:\n- `Authorization: Bearer {{access_token}}` (admin token)\n- `X-User-Id: 1`\n- `X-User-Role: admin`",
+      "item": [
+        {
+          "name": "Zones",
+          "item": [
+            {
+              "name": "Get All Zones",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "1" },
+                  { "key": "X-User-Role",  "value": "admin" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/zones",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "zones"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Zone",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type",  "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "1" },
+                  { "key": "X-User-Role",  "value": "admin" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Kampus Syahdan Binus\",\n  \"city_district\": \"Jakarta Barat\",\n  \"coordinates\": \"{\\\"type\\\": \\\"Polygon\\\", \\\"coordinates\\\": [[[106.79, -6.20], [106.80, -6.20], [106.80, -6.21], [106.79, -6.21], [106.79, -6.20]]]}\",\n  \"area_km2\": 0.75\n}"
+                },
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/zones",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "zones"]
+                },
+                "description": "Field `coordinates` harus berupa JSON string (GeoJSON Polygon).\nField `area_km2` dalam kilometer persegi."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Zone by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "1" },
+                  { "key": "X-User-Role",  "value": "admin" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/zones/1",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "zones", "1"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Zone",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type",  "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "1" },
+                  { "key": "X-User-Role",  "value": "admin" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Kampus Syahdan Binus (Updated)\",\n  \"city_district\": \"Jakarta Barat\",\n  \"area_km2\": 1.0\n}"
+                },
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/zones/1",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "zones", "1"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Zone",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "1" },
+                  { "key": "X-User-Role",  "value": "admin" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/zones/1",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "zones", "1"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Rooms (Env Rooms)",
+          "item": [
+            {
+              "name": "Get All Rooms (Admin)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "1" },
+                  { "key": "X-User-Role",  "value": "admin" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/rooms",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "rooms"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Room",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type",  "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "1" },
+                  { "key": "X-User-Role",  "value": "admin" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"zone_id\": 1,\n  \"room_name\": \"Ruang Kelas 301\",\n  \"capacity\": 40\n}"
+                },
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/rooms",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "rooms"]
+                },
+                "description": "`device_token` dibuat otomatis oleh sistem (format: `iot_<random40char>`)."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Room by ID (Admin)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "1" },
+                  { "key": "X-User-Role",  "value": "admin" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/rooms/1",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "rooms", "1"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Room",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type",  "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "1" },
+                  { "key": "X-User-Role",  "value": "admin" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"room_name\": \"Ruang Kelas 301 (Renovasi)\",\n  \"capacity\": 50,\n  \"is_active\": true\n}"
+                },
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/rooms/1",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "rooms", "1"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Room",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "1" },
+                  { "key": "X-User-Role",  "value": "admin" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/rooms/1",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "rooms", "1"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Booking Management",
+          "item": [
+            {
+              "name": "Get All Bookings",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "1" },
+                  { "key": "X-User-Role",  "value": "admin" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/bookings",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "bookings"],
+                  "query": [
+                    { "key": "status",       "value": "pending",     "disabled": true },
+                    { "key": "room_id",      "value": "1",           "disabled": true },
+                    { "key": "booking_date", "value": "2026-07-10",  "disabled": true }
+                  ]
+                },
+                "description": "Filter opsional: `?status=pending|approved|cancelled`, `?room_id=1`, `?booking_date=YYYY-MM-DD`."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Booking by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "1" },
+                  { "key": "X-User-Role",  "value": "admin" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/bookings/1",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "bookings", "1"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Approve Booking",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "1" },
+                  { "key": "X-User-Role",  "value": "admin" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/bookings/1/approve",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "bookings", "1", "approve"]
+                },
+                "description": "Hanya booking berstatus `pending` yang dapat di-approve."
+              },
+              "response": []
+            },
+            {
+              "name": "Reject Booking",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "1" },
+                  { "key": "X-User-Role",  "value": "admin" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/bookings/1/reject",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "bookings", "1", "reject"]
+                },
+                "description": "Hanya booking berstatus `pending` yang dapat di-reject. Status akan menjadi `cancelled`."
+              },
+              "response": []
+            },
+            {
+              "name": "Bulk Approve Bookings",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type",  "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "1" },
+                  { "key": "X-User-Role",  "value": "admin" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ids\": [1, 2, 3]\n}"
+                },
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/bookings/bulk-approve",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "bookings", "bulk-approve"]
+                },
+                "description": "Approve beberapa booking sekaligus. Hanya yang berstatus `pending` yang terpengaruh."
+              },
+              "response": []
+            },
+            {
+              "name": "Bulk Reject Bookings",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type",  "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "1" },
+                  { "key": "X-User-Role",  "value": "admin" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ids\": [4, 5, 6]\n}"
+                },
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/bookings/bulk-reject",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "bookings", "bulk-reject"]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. IoT Service",
+      "description": "REST endpoint IoT Service (Node.js + MQTT Bridge, port 3001).\n\nService berlangganan ke topic `iot/noise/#` di HiveMQ dan menyimpan data sensor di memori.\nKirim command ke device via topic `iot/commands/{device_id}`.",
+      "item": [
+        {
+          "name": "Get All Devices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{IOT_URL}}/api/devices",
+              "host": ["{{IOT_URL}}"],
+              "path": ["api", "devices"]
+            },
+            "description": "Kembalikan daftar device_id yang sedang terhubung (data ada di memori sejak terakhir menerima pesan MQTT)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Device Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{IOT_URL}}/api/devices/esp32-room1/data",
+              "host": ["{{IOT_URL}}"],
+              "path": ["api", "devices", "esp32-room1", "data"]
+            },
+            "description": "Ambil data sensor terakhir dari device tertentu. Ganti `esp32-room1` dengan `device_id` yang sesuai (yaitu `device_token` di tabel `env_rooms`)."
+          },
+          "response": []
+        },
+        {
+          "name": "Send Command — Relay ON",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"command\": \"relay\",\n  \"value\": 1\n}"
+            },
+            "url": {
+              "raw": "{{IOT_URL}}/api/devices/esp32-room1/command",
+              "host": ["{{IOT_URL}}"],
+              "path": ["api", "devices", "esp32-room1", "command"]
+            },
+            "description": "Nyalakan relay (AC/kipas) di device. Dipublish ke MQTT topic `iot/commands/{device_id}`."
+          },
+          "response": []
+        },
+        {
+          "name": "Send Command — Relay OFF",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"command\": \"relay\",\n  \"value\": 0\n}"
+            },
+            "url": {
+              "raw": "{{IOT_URL}}/api/devices/esp32-room1/command",
+              "host": ["{{IOT_URL}}"],
+              "path": ["api", "devices", "esp32-room1", "command"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Command — LED ON",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"command\": \"led\",\n  \"value\": 1\n}"
+            },
+            "url": {
+              "raw": "{{IOT_URL}}/api/devices/esp32-room1/command",
+              "host": ["{{IOT_URL}}"],
+              "path": ["api", "devices", "esp32-room1", "command"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Command — LED OFF",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"command\": \"led\",\n  \"value\": 0\n}"
+            },
+            "url": {
+              "raw": "{{IOT_URL}}/api/devices/esp32-room1/command",
+              "host": ["{{IOT_URL}}"],
+              "path": ["api", "devices", "esp32-room1", "command"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. ML Service (FastAPI)",
+      "description": "Python ML Service (FastAPI, port 5000).\n\nModel yang digunakan:\n- `comfort_classifier.pkl` → Random Forest Classifier (nyaman / cukup_nyaman / tidak_nyaman)\n- `busy_hour_model.pkl` → Random Forest Regressor (prediksi jam sibuk 0–23)\n- `anomaly_detector.pkl` → Isolation Forest (deteksi sensor rusak/anomali)",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ML_URL}}/health",
+              "host": ["{{ML_URL}}"],
+              "path": ["health"]
+            },
+            "description": "Mengembalikan `status: ok` jika model comfort berhasil dimuat. `status: degraded` jika model belum siap."
+          },
+          "response": []
+        },
+        {
+          "name": "Root",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ML_URL}}/",
+              "host": ["{{ML_URL}}"],
+              "path": [""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Analyze Comfort — Nyaman",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"temperature_c\": 24.0,\n  \"humidity_pct\": 55.0,\n  \"decibel_level\": 38.0,\n  \"hour\": 10,\n  \"is_weekend\": 0\n}"
+            },
+            "url": {
+              "raw": "{{ML_URL}}/api/v1/analyze-comfort",
+              "host": ["{{ML_URL}}"],
+              "path": ["api", "v1", "analyze-comfort"]
+            },
+            "description": "Klasifikasi kenyamanan ruangan menggunakan Random Forest.\n\nFitur input:\n- `temperature_c`: suhu °C\n- `humidity_pct`: kelembaban %\n- `decibel_level`: kebisingan dB\n- `hour`: jam saat ini (0–23)\n- `is_weekend`: 0 = weekday, 1 = weekend\n\nOutput: `comfort_status` → `nyaman` | `cukup_nyaman` | `tidak_nyaman`"
+          },
+          "response": []
+        },
+        {
+          "name": "Analyze Comfort — Tidak Nyaman",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"temperature_c\": 36.5,\n  \"humidity_pct\": 88.0,\n  \"decibel_level\": 92.0,\n  \"hour\": 12,\n  \"is_weekend\": 0\n}"
+            },
+            "url": {
+              "raw": "{{ML_URL}}/api/v1/analyze-comfort",
+              "host": ["{{ML_URL}}"],
+              "path": ["api", "v1", "analyze-comfort"]
+            },
+            "description": "Contoh skenario ruangan tidak nyaman: suhu tinggi, lembab, dan bising."
+          },
+          "response": []
+        },
+        {
+          "name": "Predict Busy Hour",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"room_id\": 1,\n  \"temperature_c\": 27.5,\n  \"humidity_pct\": 60.0,\n  \"decibel_level\": 55.0\n}"
+            },
+            "url": {
+              "raw": "{{ML_URL}}/api/v1/predict-busy-hour",
+              "host": ["{{ML_URL}}"],
+              "path": ["api", "v1", "predict-busy-hour"]
+            },
+            "description": "Prediksi jam sibuk berikutnya (format 24 jam, 0–23) menggunakan Random Forest Regressor.\n\nOutput juga menyertakan pesan berbasis waktu lokal Jakarta (WIB):\n- Jika jam sibuk masih di hari ini: \"sibuk dalam X jam lagi\"\n- Jika sudah lewat: prediksi untuk besok"
+          },
+          "response": []
+        },
+        {
+          "name": "Detect Anomaly — Normal",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"temperature_c\": 27.0,\n  \"humidity_pct\": 58.0,\n  \"decibel_level\": 45.0,\n  \"hour\": 14\n}"
+            },
+            "url": {
+              "raw": "{{ML_URL}}/api/v1/detect-anomaly",
+              "host": ["{{ML_URL}}"],
+              "path": ["api", "v1", "detect-anomaly"]
+            },
+            "description": "Deteksi anomali sensor menggunakan Isolation Forest.\n\nOutput: `is_anomaly` → `true` jika sensor memberikan nilai ekstrem / tidak normal, `false` jika normal.\n\nContaminasi model = 5% (artinya ~5% data historis dianggap anomali)."
+          },
+          "response": []
+        },
+        {
+          "name": "Detect Anomaly — Anomali (Suhu Ekstrem)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"temperature_c\": 90.5,\n  \"humidity_pct\": 60.0,\n  \"decibel_level\": 45.0,\n  \"hour\": 14\n}"
+            },
+            "url": {
+              "raw": "{{ML_URL}}/api/v1/detect-anomaly",
+              "host": ["{{ML_URL}}"],
+              "path": ["api", "v1", "detect-anomaly"]
+            },
+            "description": "Simulasi sensor yang rusak (suhu 90.5°C tidak realistis → harus terdeteksi sebagai anomali)."
+          },
+          "response": []
+        },
+        {
+          "name": "Recommend Seats",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"room_id\": 1,\n  \"room_name\": \"Ruang Lab IoT Smt 3\",\n  \"booking_date\": \"2026-07-10\",\n  \"start_time\": \"09:00\",\n  \"end_time\": \"11:00\",\n  \"requested_seat_count\": 2,\n  \"seats\": [\n    { \"seat_number\": \"A1\", \"row\": \"A\", \"col\": 1, \"is_booked\": false, \"booking_count_historical\": 3 },\n    { \"seat_number\": \"A2\", \"row\": \"A\", \"col\": 2, \"is_booked\": true,  \"booking_count_historical\": 5 },\n    { \"seat_number\": \"A3\", \"row\": \"A\", \"col\": 3, \"is_booked\": false, \"booking_count_historical\": 1 },\n    { \"seat_number\": \"B1\", \"row\": \"B\", \"col\": 1, \"is_booked\": false, \"booking_count_historical\": 2 },\n    { \"seat_number\": \"B2\", \"row\": \"B\", \"col\": 2, \"is_booked\": false, \"booking_count_historical\": 4 },\n    { \"seat_number\": \"B3\", \"row\": \"B\", \"col\": 3, \"is_booked\": false, \"booking_count_historical\": 0 }\n  ],\n  \"telemetry\": {\n    \"temperature\": 27.5,\n    \"humidity\": 60,\n    \"decibel_level\": 45,\n    \"ml_classification_status\": \"nyaman\",\n    \"predicted_next_busy_hour\": 10\n  }\n}"
+            },
+            "url": {
+              "raw": "{{ML_URL}}/api/v1/recommend-seats",
+              "host": ["{{ML_URL}}"],
+              "path": ["api", "v1", "recommend-seats"]
+            },
+            "description": "Rekomendasi bangku optimal berdasarkan:\n- Status `is_booked` setiap bangku\n- `booking_count_historical` (popularitas, lebih sedikit = lebih direkomendasikan)\n- Posisi (bangku tengah lebih disukai)\n- Kondisi kenyamanan ruangan dari `telemetry.ml_classification_status`\n\nBila ruangan `tidak_nyaman`, akan ada field `warning` di respons."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "8. End-to-End Scenarios",
+      "description": "Skenario lengkap yang menggambarkan alur kerja nyata platform dari awal sampai akhir.",
+      "item": [
+        {
+          "name": "Scenario A: IoT Data Pipeline",
+          "description": "Simulasi alur data sensor:\n1. Store telemetry → masuk DB (ml_status: pending)\n2. ML Worker memproses via RabbitMQ → callback ke PHP\n3. PHP memperbarui ml_status: done + dispatch device command jika tidak nyaman\n\nJalankan secara berurutan:\n① Store Telemetry\n② ML Callback (simulate worker)",
+          "item": [
+            {
+              "name": "① Store Telemetry Data",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"room_id\": 1,\n  \"temperature\": 27.5,\n  \"humidity\": 62.0,\n  \"decibel_level\": 58.0\n}"
+                },
+                "url": {
+                  "raw": "{{PHP_URL}}/api/telemetry",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "telemetry"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "② ML Callback (simulate worker result)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"telemetry_log_id\": 1,\n  \"ml_classification_status\": \"cukup_nyaman\",\n  \"predicted_next_busy_hour\": 14,\n  \"is_anomaly\": false\n}"
+                },
+                "url": {
+                  "raw": "{{PHP_URL}}/api/telemetry/callback",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "telemetry", "callback"]
+                },
+                "description": "Sesuaikan `telemetry_log_id` dengan ID dari response request sebelumnya."
+              },
+              "response": []
+            },
+            {
+              "name": "③ Check Room Comfort Result",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/rooms/1/comfort",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "rooms", "1", "comfort"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Scenario B: User Booking Flow",
+          "description": "Alur pemesanan bangku oleh user:\n1. User login → dapatkan token\n2. Cek rekomendasi bangku\n3. Buat booking\n4. Admin approve\n\nJalankan berurutan setelah mendapat token user di folder OAuth.",
+          "item": [
+            {
+              "name": "① Get Seat Recommendations",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "2" },
+                  { "key": "X-User-Role",  "value": "user" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/rooms/1/recommend-seats?booking_date=2026-07-10&start_time=09:00&end_time=11:00&seat_count=1",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "rooms", "1", "recommend-seats"],
+                  "query": [
+                    { "key": "booking_date", "value": "2026-07-10" },
+                    { "key": "start_time",   "value": "09:00" },
+                    { "key": "end_time",     "value": "11:00" },
+                    { "key": "seat_count",   "value": "1" }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "② Create Booking",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type",  "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "2" },
+                  { "key": "X-User-Role",  "value": "user" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"room_id\": 1,\n  \"seat_numbers\": [\"A3\"],\n  \"booking_date\": \"2026-07-10\",\n  \"start_time\": \"09:00\",\n  \"end_time\": \"11:00\"\n}"
+                },
+                "url": {
+                  "raw": "{{PHP_URL}}/api/bookings",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "bookings"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "③ Admin Approve Booking (switch to admin token first)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
+                  { "key": "X-User-Id",    "value": "1" },
+                  { "key": "X-User-Role",  "value": "admin" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/bookings/1/approve",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "bookings", "1", "approve"]
+                },
+                "description": "Ganti `1` dengan booking_id dari response langkah ②."
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
