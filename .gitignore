@@ -1,55 +1,35 @@
-# ── Dependencies ─────────────────────────────────────────────
-node_modules/
-vendor/
-
-# ── Environment ───────────────────────────────────────────────
+# Environment files
 .env
-*.env
+.env.local
+php-service/.env
 
-# ── Logs ─────────────────────────────────────────────────────
-logs/
-*.log
-iot/log/
+# Secrets kubernetes - JANGAN PUSH
+k8s/secrets.yaml
 
-# ── Coverage ─────────────────────────────────────────────────
-coverage/
+# Dependencies
+php-service/vendor/
+php-service/node_modules/
+node_modules/
+express-gateway/node_modules/
+oauth-server/node_modules/
+iot/node_modules/
 
-# ── ML Models (file besar, jangan di-commit) ─────────────────
-*.pkl
-python-ml-service/models/
-python-ml-service/data/
-smart-city-ml-service/models/
+# Laravel
+php-service/storage/logs/*.log
+php-service/bootstrap/cache/*.php
+php-service/storage/framework/cache/
+php-service/storage/framework/sessions/
+php-service/storage/framework/views/
 
-# ── IoT ──────────────────────────────────────────────────────
-iot/passwd
-iot/data/
+# Python
+smart-city-ml-service/__pycache__/
+smart-city-ml-service/**/__pycache__/
+smart-city-ml-service/*.pyc
+smart-city-ml-service/venv/
+smart-city-ml-service/models/*.pkl
 
-# ── Docker ───────────────────────────────────────────────────
-docker-compose.override.yml
-
-# ── OS ───────────────────────────────────────────────────────
-.DS_Store
-Thumbs.db
-
-# ── IDE ──────────────────────────────────────────────────────
+# IDE
 .vscode/
 .idea/
 *.swp
-
-# ── Python ───────────────────────────────────────────────────
-__pycache__/
-*.pyc
-*.pyo
-venv/
-.venv/
-
-# ── PHP ──────────────────────────────────────────────────────
-composer.lock
-
-# node-red-data
-.config.runtime.json
-.config.runtime.json.backup
-.config.nodes.json
-.npm
-lib
-context
+*.swo
