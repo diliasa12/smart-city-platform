@@ -16,7 +16,7 @@ const { apiResponse } = require("./utils/response");
 const {
   PORT = 3000,
   NODE_ENV = "development",
-  ML_URL = "http://python-ml:5000",
+  ML_URL = "http://python-ml-service:5000",
   OAUTH_URL = "http://oauth-server:3002",
   PHP_URL = "http://php-service:8000",
 } = process.env;
@@ -68,7 +68,7 @@ app.use(
     target: ML_URL,
     changeOrigin: true,
     pathRewrite: { "^/ml": "" },
-    on: { 
+    on: {
       error: (err, req, res) => upstreamError(res, "python-ml", err),
     },
   }),
