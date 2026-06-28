@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers; 
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http; 
@@ -12,14 +12,10 @@ class RoomComfortController extends Controller
         // Tangkap data yang dikirim dari IoT / Wokwi / Postman
         // set nilai default jika tidak ada input
         $payload = [
-            'temperature_c'      => $request->input('temperature_c', 26.0),
-            'humidity_pct'       => $request->input('humidity_pct', 55.0),
-            'traffic_density'    => $request->input('traffic_density', 8.0),
-            'near_construction'  => $request->input('near_construction', 0),
-            'population_density' => $request->input('population_density', 300),
-            'vehicle_count'      => $request->input('vehicle_count', 15),
-            'public_event'       => $request->input('public_event', 0),
-            'school_zone'        => $request->input('school_zone', 1)
+            'room_id'       => $request->input('room_id', 1),
+            'temperature'   => $request->input('temperature', 26.0),
+            'humidity'      => $request->input('humidity', 55.0),
+            'decibel_level' => $request->input('decibel_level', 40.0)
         ];
 
         try {
