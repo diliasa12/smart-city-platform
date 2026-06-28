@@ -133,11 +133,11 @@ class EnvRoomController extends Controller
             ], 404);
         }
 
-        // Tarik data historis dari tabel env_room_telemetry_logs (12 jam terakhir) lalu hitung rata-rata decibel per jam
+        // Tarik data historis dari tabel env_room_telemetry_logs (1 menit terakhir) lalu hitung rata-rata decibel per jam
         $historicalData = DB::table('env_room_telemetry_logs')
             ->select(DB::raw('HOUR(created_at) as hour, AVG(decibel_level) as avg_decibel'))
             ->where('room_id', $id)
-            ->where('created_at', '>=', now()->subHours(12))
+            ->where('created_at', '>=', now()->subMinutes(1))
             ->groupBy('hour')
             ->orderBy('hour')
             ->pluck('avg_decibel')

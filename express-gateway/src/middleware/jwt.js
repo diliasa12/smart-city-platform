@@ -19,7 +19,17 @@ const PUBLIC_PATHS = [
 ];
 
 async function verifyJWT(req, res, next) {
-  const isPublic = PUBLIC_PATHS.some((p) => req.originalUrl.startsWith(p));
+ const isPublic = PUBLIC_PATHS.some((p) => {
+    if (p === "/php/api/rooms") {
+      if (
+        req.originalUrl.includes("/busy-hour") ||
+        req.originalUrl.includes("/recommend-seats")
+      ) {
+        return false;
+      }
+    }
+    return req.originalUrl.startsWith(p);
+  });
 
   if (isPublic) {
     return next();
