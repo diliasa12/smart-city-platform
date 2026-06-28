@@ -1,25 +1,51 @@
 {
   "info": {
-    "name": "Smart City Platform",
-    "description": "Postman collection untuk Smart City Platform — mencakup OAuth, API Gateway, PHP Service, IoT Service, dan ML Service.",
-    "_postman_id": "smart-city-platform-collection",
+    "_postman_id": "smartcity-prod-collection",
+    "name": "Smart City Platform — Production (202.155.18.47)",
+    "description": "Postman collection untuk Smart City Platform di server produksi 202.155.18.47. Mencakup OAuth, API Gateway, PHP Service, IoT Service, dan ML Service.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "BASE_URL",        "value": "http://localhost:3000",  "type": "string" },
-    { "key": "PHP_URL",         "value": "http://localhost:8000",  "type": "string" },
-    { "key": "ML_URL",          "value": "http://localhost:5000",  "type": "string" },
-    { "key": "IOT_URL",         "value": "http://localhost:3001",  "type": "string" },
-    { "key": "OAUTH_URL",       "value": "http://localhost:5001",  "type": "string" },
-    { "key": "access_token",    "value": "",                       "type": "string" },
-    { "key": "refresh_token",   "value": "",                       "type": "string" }
+    {
+      "key": "BASE_URL",
+      "value": "http://202.155.18.47:3000",
+      "type": "string",
+      "description": "API Gateway"
+    },
+    {
+      "key": "PHP_URL",
+      "value": "http://202.155.18.47:8000",
+      "type": "string",
+      "description": "PHP Service (Laravel)"
+    },
+    {
+      "key": "ML_URL",
+      "value": "http://202.155.18.47:5000",
+      "type": "string",
+      "description": "ML Service (Python)"
+    },
+    {
+      "key": "IOT_URL",
+      "value": "http://202.155.18.47:3001",
+      "type": "string",
+      "description": "IoT Service"
+    },
+    {
+      "key": "OAUTH_URL",
+      "value": "http://202.155.18.47:5001",
+      "type": "string",
+      "description": "OAuth Server"
+    },
+    { "key": "access_token", "value": "", "type": "string" },
+    { "key": "refresh_token", "value": "", "type": "string" }
   ],
   "item": [
     {
       "name": "1. OAuth Server",
+      "description": "Endpoint autentikasi OAuth 2.0 — langsung ke port 5001",
       "item": [
         {
-          "name": "Get Token (Password Grant - User)",
+          "name": "Get Token — Admin (Password Grant)",
           "event": [
             {
               "listen": "test",
@@ -29,10 +55,10 @@
                   "if (res.data && res.data.access_token) {",
                   "  pm.collectionVariables.set('access_token', res.data.access_token);",
                   "  pm.collectionVariables.set('refresh_token', res.data.refresh_token || '');",
-                  "  console.log('Token saved:', res.data.access_token.substring(0, 30) + '...');",
+                  "  console.log('✓ Token tersimpan:', res.data.access_token.substring(0, 40) + '...');",
                   "}",
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Has access_token', () => pm.expect(res.data).to.have.property('access_token'));"
+                  "pm.test('Ada access_token', () => pm.expect(res.data).to.have.property('access_token'));"
                 ],
                 "type": "text/javascript"
               }
@@ -40,23 +66,34 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
-                { "key": "grant_type",    "value": "password" },
-                { "key": "client_id",     "value": "laravel_web_dashboard" },
-                { "key": "client_secret", "value": "secret_dashboard" },
-                { "key": "username",      "value": "admin@smartcity.id" },
-                { "key": "password",      "value": "password123" },
-                { "key": "scope",         "value": "read write" }
+                { "key": "grant_type", "value": "password" },
+                { "key": "client_id", "value": "laravel_web_dashboard" },
+                {
+                  "key": "client_secret",
+                  "value": "$2y$10$m9XyZzWvU87654321bK3bEeFzo1Sg8K2f689HjklMNOpQrStUvWabc"
+                },
+                { "key": "username", "value": "admin@smartcity.id" },
+                { "key": "password", "value": "password123" }
               ]
             },
-            "url": { "raw": "{{OAUTH_URL}}/token", "host": ["{{OAUTH_URL}}"], "path": ["token"] }
+            "url": {
+              "raw": "{{OAUTH_URL}}/token",
+              "host": ["{{OAUTH_URL}}"],
+              "path": ["token"]
+            }
           }
         },
         {
-          "name": "Get Token (Password Grant - Regular User)",
+          "name": "Get Token — User Biasa (Password Grant)",
           "event": [
             {
               "listen": "test",
@@ -66,6 +103,7 @@
                   "if (res.data && res.data.access_token) {",
                   "  pm.collectionVariables.set('access_token', res.data.access_token);",
                   "  pm.collectionVariables.set('refresh_token', res.data.refresh_token || '');",
+                  "  console.log('✓ Token user tersimpan');",
                   "}",
                   "pm.test('Status 200', () => pm.response.to.have.status(200));"
                 ],
@@ -75,23 +113,34 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
-                { "key": "grant_type",    "value": "password" },
-                { "key": "client_id",     "value": "laravel_web_dashboard" },
-                { "key": "client_secret", "value": "secret_dashboard" },
-                { "key": "username",      "value": "budi@gmail.com" },
-                { "key": "password",      "value": "password123" },
-                { "key": "scope",         "value": "read" }
+                { "key": "grant_type", "value": "password" },
+                { "key": "client_id", "value": "laravel_web_dashboard" },
+                {
+                  "key": "client_secret",
+                  "value": "$2y$10$m9XyZzWvU87654321bK3bEeFzo1Sg8K2f689HjklMNOpQrStUvWabc"
+                },
+                { "key": "username", "value": "budi@gmail.com" },
+                { "key": "password", "value": "password123" }
               ]
             },
-            "url": { "raw": "{{OAUTH_URL}}/token", "host": ["{{OAUTH_URL}}"], "path": ["token"] }
+            "url": {
+              "raw": "{{OAUTH_URL}}/token",
+              "host": ["{{OAUTH_URL}}"],
+              "path": ["token"]
+            }
           }
         },
         {
-          "name": "Get Token (Client Credentials - IoT Gateway)",
+          "name": "Get Token — IoT Gateway (Client Credentials)",
           "event": [
             {
               "listen": "test",
@@ -100,6 +149,7 @@
                   "const res = pm.response.json();",
                   "if (res.data && res.data.access_token) {",
                   "  pm.collectionVariables.set('access_token', res.data.access_token);",
+                  "  console.log('✓ Service token tersimpan');",
                   "}",
                   "pm.test('Status 200', () => pm.response.to.have.status(200));"
                 ],
@@ -109,106 +159,301 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
-                { "key": "grant_type",    "value": "client_credentials" },
-                { "key": "client_id",     "value": "nodejs_iot_gateway" },
-                { "key": "client_secret", "value": "secret_gateway" }
+                { "key": "grant_type", "value": "client_credentials" },
+                { "key": "client_id", "value": "nodejs_iot_gateway" },
+                {
+                  "key": "client_secret",
+                  "value": "$2y$10$e0MYzXyDxZ266a17bK3bEeFzo1Sg8K2f689HjklMNOpQrStUvWxyZ"
+                }
               ]
             },
-            "url": { "raw": "{{OAUTH_URL}}/token", "host": ["{{OAUTH_URL}}"], "path": ["token"] }
+            "url": {
+              "raw": "{{OAUTH_URL}}/token",
+              "host": ["{{OAUTH_URL}}"],
+              "path": ["token"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.access_token) {",
+                  "  pm.collectionVariables.set('access_token', res.data.access_token);",
+                  "  console.log('✓ Token diperbarui');",
+                  "}",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "refresh_token" },
+                { "key": "client_id", "value": "laravel_web_dashboard" },
+                {
+                  "key": "client_secret",
+                  "value": "$2y$10$m9XyZzWvU87654321bK3bEeFzo1Sg8K2f689HjklMNOpQrStUvWabc"
+                },
+                { "key": "refresh_token", "value": "{{refresh_token}}" }
+              ]
+            },
+            "url": {
+              "raw": "{{OAUTH_URL}}/token",
+              "host": ["{{OAUTH_URL}}"],
+              "path": ["token"]
+            }
           }
         },
         {
           "name": "Introspect Token",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
             "body": {
               "mode": "urlencoded",
-              "urlencoded": [
-                { "key": "token", "value": "{{access_token}}" }
-              ]
+              "urlencoded": [{ "key": "token", "value": "{{access_token}}" }]
             },
-            "url": { "raw": "{{OAUTH_URL}}/introspect", "host": ["{{OAUTH_URL}}"], "path": ["introspect"] }
+            "url": {
+              "raw": "{{OAUTH_URL}}/introspect",
+              "host": ["{{OAUTH_URL}}"],
+              "path": ["introspect"]
+            }
           }
         },
         {
           "name": "Revoke Token",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
-                { "key": "token",           "value": "{{access_token}}" },
+                { "key": "token", "value": "{{access_token}}" },
                 { "key": "token_type_hint", "value": "access_token" }
               ]
             },
-            "url": { "raw": "{{OAUTH_URL}}/revoke", "host": ["{{OAUTH_URL}}"], "path": ["revoke"] }
+            "url": {
+              "raw": "{{OAUTH_URL}}/revoke",
+              "host": ["{{OAUTH_URL}}"],
+              "path": ["revoke"]
+            }
           }
         },
         {
           "name": "Health Check",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{OAUTH_URL}}/health", "host": ["{{OAUTH_URL}}"], "path": ["health"] }
+            "header": [],
+            "url": {
+              "raw": "{{OAUTH_URL}}/health",
+              "host": ["{{OAUTH_URL}}"],
+              "path": ["health"]
+            }
           }
         }
       ]
     },
     {
-      "name": "2. API Gateway",
+      "name": "2. API Gateway (port 3000)",
+      "description": "Semua request melalui gateway wajib pakai Bearer token. Prefix /php → PHP Service, /ml → ML Service, /iot → IoT Service.",
       "item": [
         {
-          "name": "Health Check",
+          "name": "Health Check Gateway",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{BASE_URL}}/health", "host": ["{{BASE_URL}}"], "path": ["health"] }
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/health",
+              "host": ["{{BASE_URL}}"],
+              "path": ["health"]
+            }
           }
         },
         {
-          "name": "Get Rooms (via Gateway)",
+          "name": "Get All Rooms (via Gateway)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
-            "url": { "raw": "{{BASE_URL}}/php/api/rooms", "host": ["{{BASE_URL}}"], "path": ["php", "api", "rooms"] }
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/php/api/rooms",
+              "host": ["{{BASE_URL}}"],
+              "path": ["php", "api", "rooms"]
+            }
           }
         },
         {
           "name": "Get Room Comfort (via Gateway)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
-            "url": { "raw": "{{BASE_URL}}/php/api/rooms/1/comfort", "host": ["{{BASE_URL}}"], "path": ["php", "api", "rooms", "1", "comfort"] }
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/php/api/rooms/1/comfort",
+              "host": ["{{BASE_URL}}"],
+              "path": ["php", "api", "rooms", "1", "comfort"]
+            }
+          }
+        },
+        {
+          "name": "Get Room Comfort History (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/php/api/rooms/1/comfort/history",
+              "host": ["{{BASE_URL}}"],
+              "path": ["php", "api", "rooms", "1", "comfort", "history"]
+            }
           }
         },
         {
           "name": "Predict Busy Hour (via Gateway)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
-            "url": { "raw": "{{BASE_URL}}/php/api/rooms/1/busy-hour", "host": ["{{BASE_URL}}"], "path": ["php", "api", "rooms", "1", "busy-hour"] }
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/php/api/rooms/1/busy-hour",
+              "host": ["{{BASE_URL}}"],
+              "path": ["php", "api", "rooms", "1", "busy-hour"]
+            }
+          }
+        },
+        {
+          "name": "Get Seat Recommendation (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/php/api/rooms/1/recommend-seats?booking_date=2026-07-01&start_time=09:00&end_time=11:00&seat_count=2",
+              "host": ["{{BASE_URL}}"],
+              "path": ["php", "api", "rooms", "1", "recommend-seats"],
+              "query": [
+                { "key": "booking_date", "value": "2026-07-01" },
+                { "key": "start_time", "value": "09:00" },
+                { "key": "end_time", "value": "11:00" },
+                { "key": "seat_count", "value": "2" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Store Telemetry (via Gateway)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"room_id\": 1,\n  \"temperature\": 27.5,\n  \"humidity\": 60,\n  \"decibel_level\": 65\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/php/api/telemetry",
+              "host": ["{{BASE_URL}}"],
+              "path": ["php", "api", "telemetry"]
+            }
+          }
+        },
+        {
+          "name": "ML — Analyze Comfort (via Gateway)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"temperature_c\": 27.5,\n  \"humidity_pct\": 60,\n  \"decibel_level\": 65,\n  \"hour\": 10,\n  \"is_weekend\": 0\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/ml/api/v1/analyze-comfort",
+              "host": ["{{BASE_URL}}"],
+              "path": ["ml", "api", "v1", "analyze-comfort"]
+            }
+          }
+        },
+        {
+          "name": "Get IoT Devices (via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/iot/api/devices",
+              "host": ["{{BASE_URL}}"],
+              "path": ["iot", "api", "devices"]
+            }
           }
         }
       ]
     },
     {
-      "name": "3. PHP Service — Public",
+      "name": "3. PHP Service — Public (port 8000)",
+      "description": "Endpoint publik tidak memerlukan autentikasi.",
       "item": [
         {
           "name": "Health Check",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{PHP_URL}}/api/health", "host": ["{{PHP_URL}}"], "path": ["api", "health"] }
+            "header": [],
+            "url": {
+              "raw": "{{PHP_URL}}/api/health",
+              "host": ["{{PHP_URL}}"],
+              "path": ["api", "health"]
+            }
           }
         },
         {
           "name": "Get All Rooms",
           "request": {
             "method": "GET",
+            "header": [],
             "url": {
               "raw": "{{PHP_URL}}/api/rooms",
               "host": ["{{PHP_URL}}"],
@@ -218,17 +463,27 @@
           }
         },
         {
-          "name": "Get Room Comfort",
+          "name": "Get Room Comfort by ID",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{PHP_URL}}/api/rooms/1/comfort", "host": ["{{PHP_URL}}"], "path": ["api", "rooms", "1", "comfort"] }
+            "header": [],
+            "url": {
+              "raw": "{{PHP_URL}}/api/rooms/1/comfort",
+              "host": ["{{PHP_URL}}"],
+              "path": ["api", "rooms", "1", "comfort"]
+            }
           }
         },
         {
           "name": "Get Room Comfort History (24 jam)",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{PHP_URL}}/api/rooms/1/comfort/history", "host": ["{{PHP_URL}}"], "path": ["api", "rooms", "1", "comfort", "history"] }
+            "header": [],
+            "url": {
+              "raw": "{{PHP_URL}}/api/rooms/1/comfort/history",
+              "host": ["{{PHP_URL}}"],
+              "path": ["api", "rooms", "1", "comfort", "history"]
+            }
           }
         },
         {
@@ -240,7 +495,11 @@
               "mode": "raw",
               "raw": "{\n  \"room_id\": 1,\n  \"temperature\": 27.5,\n  \"humidity\": 60,\n  \"decibel_level\": 65\n}"
             },
-            "url": { "raw": "{{PHP_URL}}/api/telemetry", "host": ["{{PHP_URL}}"], "path": ["api", "telemetry"] }
+            "url": {
+              "raw": "{{PHP_URL}}/api/telemetry",
+              "host": ["{{PHP_URL}}"],
+              "path": ["api", "telemetry"]
+            }
           }
         },
         {
@@ -250,15 +509,20 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"telemetry_log_id\": 1,\n  \"ml_classification_status\": \"nyaman\",\n  \"predicted_next_busy_hour\": 10\n}"
+              "raw": "{\n  \"telemetry_log_id\": 1,\n  \"ml_classification_status\": \"nyaman\",\n  \"predicted_next_busy_hour\": 10,\n  \"is_anomaly\": false\n}"
             },
-            "url": { "raw": "{{PHP_URL}}/api/telemetry/callback", "host": ["{{PHP_URL}}"], "path": ["api", "telemetry", "callback"] }
+            "url": {
+              "raw": "{{PHP_URL}}/api/telemetry/callback",
+              "host": ["{{PHP_URL}}"],
+              "path": ["api", "telemetry", "callback"]
+            }
           }
         }
       ]
     },
     {
-      "name": "4. PHP Service — User (Auth Required)",
+      "name": "4. PHP Service — User (Auth via Header)",
+      "description": "Simulasi request yang sudah melewati API Gateway. Sertakan X-User-Id dan X-User-Role secara manual.",
       "item": [
         {
           "name": "Get My Bookings",
@@ -266,27 +530,35 @@
             "method": "GET",
             "header": [
               { "key": "Authorization", "value": "Bearer {{access_token}}" },
-              { "key": "X-User-Id",     "value": "2" },
-              { "key": "X-User-Role",   "value": "user" }
+              { "key": "X-User-Id", "value": "2" },
+              { "key": "X-User-Role", "value": "user" }
             ],
-            "url": { "raw": "{{PHP_URL}}/api/bookings", "host": ["{{PHP_URL}}"], "path": ["api", "bookings"] }
+            "url": {
+              "raw": "{{PHP_URL}}/api/bookings",
+              "host": ["{{PHP_URL}}"],
+              "path": ["api", "bookings"]
+            }
           }
         },
         {
-          "name": "Create Booking",
+          "name": "Create Booking (Multi Seat)",
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
               { "key": "Authorization", "value": "Bearer {{access_token}}" },
-              { "key": "X-User-Id",     "value": "2" },
-              { "key": "X-User-Role",   "value": "user" }
+              { "key": "X-User-Id", "value": "2" },
+              { "key": "X-User-Role", "value": "user" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"room_id\": 1,\n  \"seat_numbers\": [\"A1\", \"A2\"],\n  \"booking_date\": \"2026-06-30\",\n  \"start_time\": \"09:00\",\n  \"end_time\": \"11:00\"\n}"
+              "raw": "{\n  \"room_id\": 1,\n  \"seat_numbers\": [\"A1\", \"A2\"],\n  \"booking_date\": \"2026-07-05\",\n  \"start_time\": \"09:00\",\n  \"end_time\": \"11:00\"\n}"
             },
-            "url": { "raw": "{{PHP_URL}}/api/bookings", "host": ["{{PHP_URL}}"], "path": ["api", "bookings"] }
+            "url": {
+              "raw": "{{PHP_URL}}/api/bookings",
+              "host": ["{{PHP_URL}}"],
+              "path": ["api", "bookings"]
+            }
           }
         },
         {
@@ -295,10 +567,14 @@
             "method": "DELETE",
             "header": [
               { "key": "Authorization", "value": "Bearer {{access_token}}" },
-              { "key": "X-User-Id",     "value": "2" },
-              { "key": "X-User-Role",   "value": "user" }
+              { "key": "X-User-Id", "value": "2" },
+              { "key": "X-User-Role", "value": "user" }
             ],
-            "url": { "raw": "{{PHP_URL}}/api/bookings/1", "host": ["{{PHP_URL}}"], "path": ["api", "bookings", "1"] }
+            "url": {
+              "raw": "{{PHP_URL}}/api/bookings/1",
+              "host": ["{{PHP_URL}}"],
+              "path": ["api", "bookings", "1"]
+            }
           }
         },
         {
@@ -307,18 +583,18 @@
             "method": "GET",
             "header": [
               { "key": "Authorization", "value": "Bearer {{access_token}}" },
-              { "key": "X-User-Id",     "value": "2" },
-              { "key": "X-User-Role",   "value": "user" }
+              { "key": "X-User-Id", "value": "2" },
+              { "key": "X-User-Role", "value": "user" }
             ],
             "url": {
-              "raw": "{{PHP_URL}}/api/rooms/1/recommend-seats?booking_date=2026-06-30&start_time=09:00&end_time=11:00&seat_count=2",
+              "raw": "{{PHP_URL}}/api/rooms/1/recommend-seats?booking_date=2026-07-05&start_time=09:00&end_time=11:00&seat_count=2",
               "host": ["{{PHP_URL}}"],
               "path": ["api", "rooms", "1", "recommend-seats"],
               "query": [
-                { "key": "booking_date", "value": "2026-06-30" },
-                { "key": "start_time",   "value": "09:00" },
-                { "key": "end_time",     "value": "11:00" },
-                { "key": "seat_count",   "value": "2" }
+                { "key": "booking_date", "value": "2026-07-05" },
+                { "key": "start_time", "value": "09:00" },
+                { "key": "end_time", "value": "11:00" },
+                { "key": "seat_count", "value": "2" }
               ]
             }
           }
@@ -329,16 +605,21 @@
             "method": "GET",
             "header": [
               { "key": "Authorization", "value": "Bearer {{access_token}}" },
-              { "key": "X-User-Id",     "value": "2" },
-              { "key": "X-User-Role",   "value": "user" }
+              { "key": "X-User-Id", "value": "2" },
+              { "key": "X-User-Role", "value": "user" }
             ],
-            "url": { "raw": "{{PHP_URL}}/api/rooms/1/busy-hour", "host": ["{{PHP_URL}}"], "path": ["api", "rooms", "1", "busy-hour"] }
+            "url": {
+              "raw": "{{PHP_URL}}/api/rooms/1/busy-hour",
+              "host": ["{{PHP_URL}}"],
+              "path": ["api", "rooms", "1", "busy-hour"]
+            }
           }
         }
       ]
     },
     {
-      "name": "5. PHP Service — Admin (Auth Required)",
+      "name": "5. PHP Service — Admin (Auth via Header)",
+      "description": "Endpoint admin — X-User-Role harus bernilai 'admin'.",
       "item": [
         {
           "name": "Zones",
@@ -348,11 +629,18 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
-                  { "key": "X-User-Id",     "value": "1" },
-                  { "key": "X-User-Role",   "value": "admin" }
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  { "key": "X-User-Id", "value": "1" },
+                  { "key": "X-User-Role", "value": "admin" }
                 ],
-                "url": { "raw": "{{PHP_URL}}/api/admin/zones", "host": ["{{PHP_URL}}"], "path": ["api", "admin", "zones"] }
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/zones",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "zones"]
+                }
               }
             },
             {
@@ -360,16 +648,23 @@
               "request": {
                 "method": "POST",
                 "header": [
-                  { "key": "Content-Type",  "value": "application/json" },
-                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
-                  { "key": "X-User-Id",     "value": "1" },
-                  { "key": "X-User-Role",   "value": "admin" }
+                  { "key": "Content-Type", "value": "application/json" },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  { "key": "X-User-Id", "value": "1" },
+                  { "key": "X-User-Role", "value": "admin" }
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Kampus Syahdan Binus\",\n  \"city_district\": \"Jakarta Barat\",\n  \"coordinates\": \"{\\\"type\\\": \\\"Polygon\\\", \\\"coordinates\\\": [[[106.79, -6.20], [106.80, -6.20], [106.80, -6.21], [106.79, -6.21], [106.79, -6.20]]]}\",\n  \"area_km2\": 0.75\n}"
+                  "raw": "{\n  \"name\": \"Kampus Syahdan Binus\",\n  \"city_district\": \"Jakarta Barat\",\n  \"coordinates\": \"{\\\"type\\\":\\\"Polygon\\\",\\\"coordinates\\\":[[[106.79,-6.20],[106.80,-6.20],[106.80,-6.21],[106.79,-6.21],[106.79,-6.20]]]}\",\n  \"area_km2\": 0.75\n}"
                 },
-                "url": { "raw": "{{PHP_URL}}/api/admin/zones", "host": ["{{PHP_URL}}"], "path": ["api", "admin", "zones"] }
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/zones",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "zones"]
+                }
               }
             },
             {
@@ -377,11 +672,18 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
-                  { "key": "X-User-Id",     "value": "1" },
-                  { "key": "X-User-Role",   "value": "admin" }
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  { "key": "X-User-Id", "value": "1" },
+                  { "key": "X-User-Role", "value": "admin" }
                 ],
-                "url": { "raw": "{{PHP_URL}}/api/admin/zones/1", "host": ["{{PHP_URL}}"], "path": ["api", "admin", "zones", "1"] }
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/zones/1",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "zones", "1"]
+                }
               }
             },
             {
@@ -389,16 +691,23 @@
               "request": {
                 "method": "PUT",
                 "header": [
-                  { "key": "Content-Type",  "value": "application/json" },
-                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
-                  { "key": "X-User-Id",     "value": "1" },
-                  { "key": "X-User-Role",   "value": "admin" }
+                  { "key": "Content-Type", "value": "application/json" },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  { "key": "X-User-Id", "value": "1" },
+                  { "key": "X-User-Role", "value": "admin" }
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Kampus Syahdan Binus Updated\",\n  \"area_km2\": 1.0\n}"
+                  "raw": "{\n  \"name\": \"Kampus Syahdan Updated\",\n  \"area_km2\": 1.0\n}"
                 },
-                "url": { "raw": "{{PHP_URL}}/api/admin/zones/1", "host": ["{{PHP_URL}}"], "path": ["api", "admin", "zones", "1"] }
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/zones/1",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "zones", "1"]
+                }
               }
             },
             {
@@ -406,11 +715,18 @@
               "request": {
                 "method": "DELETE",
                 "header": [
-                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
-                  { "key": "X-User-Id",     "value": "1" },
-                  { "key": "X-User-Role",   "value": "admin" }
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  { "key": "X-User-Id", "value": "1" },
+                  { "key": "X-User-Role", "value": "admin" }
                 ],
-                "url": { "raw": "{{PHP_URL}}/api/admin/zones/1", "host": ["{{PHP_URL}}"], "path": ["api", "admin", "zones", "1"] }
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/zones/1",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "zones", "1"]
+                }
               }
             }
           ]
@@ -423,11 +739,18 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
-                  { "key": "X-User-Id",     "value": "1" },
-                  { "key": "X-User-Role",   "value": "admin" }
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  { "key": "X-User-Id", "value": "1" },
+                  { "key": "X-User-Role", "value": "admin" }
                 ],
-                "url": { "raw": "{{PHP_URL}}/api/admin/rooms", "host": ["{{PHP_URL}}"], "path": ["api", "admin", "rooms"] }
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/rooms",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "rooms"]
+                }
               }
             },
             {
@@ -435,16 +758,23 @@
               "request": {
                 "method": "POST",
                 "header": [
-                  { "key": "Content-Type",  "value": "application/json" },
-                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
-                  { "key": "X-User-Id",     "value": "1" },
-                  { "key": "X-User-Role",   "value": "admin" }
+                  { "key": "Content-Type", "value": "application/json" },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  { "key": "X-User-Id", "value": "1" },
+                  { "key": "X-User-Role", "value": "admin" }
                 ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"zone_id\": 1,\n  \"room_name\": \"Ruang Kelas 301\",\n  \"capacity\": 40\n}"
                 },
-                "url": { "raw": "{{PHP_URL}}/api/admin/rooms", "host": ["{{PHP_URL}}"], "path": ["api", "admin", "rooms"] }
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/rooms",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "rooms"]
+                }
               }
             },
             {
@@ -452,11 +782,18 @@
               "request": {
                 "method": "GET",
                 "header": [
-                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
-                  { "key": "X-User-Id",     "value": "1" },
-                  { "key": "X-User-Role",   "value": "admin" }
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  { "key": "X-User-Id", "value": "1" },
+                  { "key": "X-User-Role", "value": "admin" }
                 ],
-                "url": { "raw": "{{PHP_URL}}/api/admin/rooms/1", "host": ["{{PHP_URL}}"], "path": ["api", "admin", "rooms", "1"] }
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/rooms/1",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "rooms", "1"]
+                }
               }
             },
             {
@@ -464,16 +801,23 @@
               "request": {
                 "method": "PUT",
                 "header": [
-                  { "key": "Content-Type",  "value": "application/json" },
-                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
-                  { "key": "X-User-Id",     "value": "1" },
-                  { "key": "X-User-Role",   "value": "admin" }
+                  { "key": "Content-Type", "value": "application/json" },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  { "key": "X-User-Id", "value": "1" },
+                  { "key": "X-User-Role", "value": "admin" }
                 ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"room_name\": \"Ruang Kelas 301 Updated\",\n  \"capacity\": 50,\n  \"is_active\": true\n}"
                 },
-                "url": { "raw": "{{PHP_URL}}/api/admin/rooms/1", "host": ["{{PHP_URL}}"], "path": ["api", "admin", "rooms", "1"] }
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/rooms/1",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "rooms", "1"]
+                }
               }
             },
             {
@@ -481,11 +825,156 @@
               "request": {
                 "method": "DELETE",
                 "header": [
-                  { "key": "Authorization", "value": "Bearer {{access_token}}" },
-                  { "key": "X-User-Id",     "value": "1" },
-                  { "key": "X-User-Role",   "value": "admin" }
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  { "key": "X-User-Id", "value": "1" },
+                  { "key": "X-User-Role", "value": "admin" }
                 ],
-                "url": { "raw": "{{PHP_URL}}/api/admin/rooms/1", "host": ["{{PHP_URL}}"], "path": ["api", "admin", "rooms", "1"] }
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/rooms/1",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "rooms", "1"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bookings Management",
+          "item": [
+            {
+              "name": "Get All Bookings",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  { "key": "X-User-Id", "value": "1" },
+                  { "key": "X-User-Role", "value": "admin" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/bookings",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "bookings"],
+                  "query": [
+                    { "key": "status", "value": "pending", "disabled": true },
+                    { "key": "room_id", "value": "1", "disabled": true },
+                    {
+                      "key": "booking_date",
+                      "value": "2026-07-05",
+                      "disabled": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Booking by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  { "key": "X-User-Id", "value": "1" },
+                  { "key": "X-User-Role", "value": "admin" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/bookings/1",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "bookings", "1"]
+                }
+              }
+            },
+            {
+              "name": "Approve Booking",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  { "key": "X-User-Id", "value": "1" },
+                  { "key": "X-User-Role", "value": "admin" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/bookings/1/approve",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "bookings", "1", "approve"]
+                }
+              }
+            },
+            {
+              "name": "Reject Booking",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  { "key": "X-User-Id", "value": "1" },
+                  { "key": "X-User-Role", "value": "admin" }
+                ],
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/bookings/1/reject",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "bookings", "1", "reject"]
+                }
+              }
+            },
+            {
+              "name": "Bulk Approve Bookings",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  { "key": "X-User-Id", "value": "1" },
+                  { "key": "X-User-Role", "value": "admin" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ids\": [1, 2, 3]\n}"
+                },
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/bookings/bulk-approve",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "bookings", "bulk-approve"]
+                }
+              }
+            },
+            {
+              "name": "Bulk Reject Bookings",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  { "key": "X-User-Id", "value": "1" },
+                  { "key": "X-User-Role", "value": "admin" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ids\": [1, 2, 3]\n}"
+                },
+                "url": {
+                  "raw": "{{PHP_URL}}/api/admin/bookings/bulk-reject",
+                  "host": ["{{PHP_URL}}"],
+                  "path": ["api", "admin", "bookings", "bulk-reject"]
+                }
               }
             }
           ]
@@ -493,24 +982,35 @@
       ]
     },
     {
-      "name": "6. IoT Service",
+      "name": "6. IoT Service (port 3001)",
+      "description": "Langsung ke IoT Service — tidak melalui gateway.",
       "item": [
         {
           "name": "Get All Devices",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{IOT_URL}}/api/devices", "host": ["{{IOT_URL}}"], "path": ["api", "devices"] }
+            "header": [],
+            "url": {
+              "raw": "{{IOT_URL}}/api/devices",
+              "host": ["{{IOT_URL}}"],
+              "path": ["api", "devices"]
+            }
           }
         },
         {
           "name": "Get Device Data",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{IOT_URL}}/api/devices/esp32-room1/data", "host": ["{{IOT_URL}}"], "path": ["api", "devices", "esp32-room1", "data"] }
+            "header": [],
+            "url": {
+              "raw": "{{IOT_URL}}/api/devices/esp32-room1/data",
+              "host": ["{{IOT_URL}}"],
+              "path": ["api", "devices", "esp32-room1", "data"]
+            }
           }
         },
         {
-          "name": "Send Command to Device",
+          "name": "Send Command — Relay ON",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -518,11 +1018,31 @@
               "mode": "raw",
               "raw": "{\n  \"command\": \"relay\",\n  \"value\": 1\n}"
             },
-            "url": { "raw": "{{IOT_URL}}/api/devices/esp32-room1/command", "host": ["{{IOT_URL}}"], "path": ["api", "devices", "esp32-room1", "command"] }
+            "url": {
+              "raw": "{{IOT_URL}}/api/devices/esp32-room1/command",
+              "host": ["{{IOT_URL}}"],
+              "path": ["api", "devices", "esp32-room1", "command"]
+            }
           }
         },
         {
-          "name": "Send LED Command",
+          "name": "Send Command — Relay OFF",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"command\": \"relay\",\n  \"value\": 0\n}"
+            },
+            "url": {
+              "raw": "{{IOT_URL}}/api/devices/esp32-room1/command",
+              "host": ["{{IOT_URL}}"],
+              "path": ["api", "devices", "esp32-room1", "command"]
+            }
+          }
+        },
+        {
+          "name": "Send Command — LED ON",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -530,43 +1050,77 @@
               "mode": "raw",
               "raw": "{\n  \"command\": \"led\",\n  \"value\": 1\n}"
             },
-            "url": { "raw": "{{IOT_URL}}/api/devices/esp32-room1/command", "host": ["{{IOT_URL}}"], "path": ["api", "devices", "esp32-room1", "command"] }
+            "url": {
+              "raw": "{{IOT_URL}}/api/devices/esp32-room1/command",
+              "host": ["{{IOT_URL}}"],
+              "path": ["api", "devices", "esp32-room1", "command"]
+            }
+          }
+        },
+        {
+          "name": "Send Command — LED OFF",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"command\": \"led\",\n  \"value\": 0\n}"
+            },
+            "url": {
+              "raw": "{{IOT_URL}}/api/devices/esp32-room1/command",
+              "host": ["{{IOT_URL}}"],
+              "path": ["api", "devices", "esp32-room1", "command"]
+            }
           }
         }
       ]
     },
     {
-      "name": "7. ML Service",
+      "name": "7. ML Service (port 5000)",
+      "description": "Langsung ke Python ML Service.",
       "item": [
         {
           "name": "Health Check",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{ML_URL}}/health", "host": ["{{ML_URL}}"], "path": ["health"] }
+            "header": [],
+            "url": {
+              "raw": "{{ML_URL}}/health",
+              "host": ["{{ML_URL}}"],
+              "path": ["health"]
+            }
           }
         },
         {
-          "name": "Analyze Comfort",
+          "name": "Analyze Comfort — Nyaman",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"temperature\": 27.5,\n  \"humidity\": 60,\n  \"decibel_level\": 65,\n  \"hour\": 10,\n  \"is_weekend\": 0\n}"
+              "raw": "{\n  \"temperature_c\": 24.0,\n  \"humidity_pct\": 55,\n  \"decibel_level\": 40,\n  \"hour\": 10,\n  \"is_weekend\": 0\n}"
             },
-            "url": { "raw": "{{ML_URL}}/api/v1/analyze-comfort", "host": ["{{ML_URL}}"], "path": ["api", "v1", "analyze-comfort"] }
+            "url": {
+              "raw": "{{ML_URL}}/api/v1/analyze-comfort",
+              "host": ["{{ML_URL}}"],
+              "path": ["api", "v1", "analyze-comfort"]
+            }
           }
         },
         {
-          "name": "Analyze Comfort - Tidak Nyaman",
+          "name": "Analyze Comfort — Tidak Nyaman",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"temperature\": 35.0,\n  \"humidity\": 85,\n  \"decibel_level\": 90,\n  \"hour\": 12,\n  \"is_weekend\": 0\n}"
+              "raw": "{\n  \"temperature_c\": 35.0,\n  \"humidity_pct\": 85,\n  \"decibel_level\": 90,\n  \"hour\": 12,\n  \"is_weekend\": 0\n}"
             },
-            "url": { "raw": "{{ML_URL}}/api/v1/analyze-comfort", "host": ["{{ML_URL}}"], "path": ["api", "v1", "analyze-comfort"] }
+            "url": {
+              "raw": "{{ML_URL}}/api/v1/analyze-comfort",
+              "host": ["{{ML_URL}}"],
+              "path": ["api", "v1", "analyze-comfort"]
+            }
           }
         },
         {
@@ -576,9 +1130,45 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"room_id\": 1,\n  \"historical_decibels\": [35.5, 42.0, 65.2, 60.1, 45.0, 70.3, 55.0]\n}"
+              "raw": "{\n  \"room_id\": 1,\n  \"temperature_c\": 27.5,\n  \"humidity_pct\": 60,\n  \"decibel_level\": 65\n}"
             },
-            "url": { "raw": "{{ML_URL}}/api/v1/predict-busy-hour", "host": ["{{ML_URL}}"], "path": ["api", "v1", "predict-busy-hour"] }
+            "url": {
+              "raw": "{{ML_URL}}/api/v1/predict-busy-hour",
+              "host": ["{{ML_URL}}"],
+              "path": ["api", "v1", "predict-busy-hour"]
+            }
+          }
+        },
+        {
+          "name": "Detect Anomaly — Normal",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"temperature_c\": 26.0,\n  \"humidity_pct\": 60,\n  \"decibel_level\": 45,\n  \"hour\": 14\n}"
+            },
+            "url": {
+              "raw": "{{ML_URL}}/api/v1/detect-anomaly",
+              "host": ["{{ML_URL}}"],
+              "path": ["api", "v1", "detect-anomaly"]
+            }
+          }
+        },
+        {
+          "name": "Detect Anomaly — Anomali (nilai ekstrem)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"temperature_c\": 90.5,\n  \"humidity_pct\": 100,\n  \"decibel_level\": 140,\n  \"hour\": 3\n}"
+            },
+            "url": {
+              "raw": "{{ML_URL}}/api/v1/detect-anomaly",
+              "host": ["{{ML_URL}}"],
+              "path": ["api", "v1", "detect-anomaly"]
+            }
           }
         },
         {
@@ -588,9 +1178,13 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"room_id\": 1,\n  \"room_name\": \"Ruang Lab IoT Smt 3\",\n  \"booking_date\": \"2026-06-30\",\n  \"start_time\": \"09:00\",\n  \"end_time\": \"11:00\",\n  \"requested_seat_count\": 2,\n  \"seats\": [\n    {\"seat_number\": \"A1\", \"row\": \"A\", \"col\": 1, \"is_booked\": false, \"booking_count_historical\": 3},\n    {\"seat_number\": \"A2\", \"row\": \"A\", \"col\": 2, \"is_booked\": true,  \"booking_count_historical\": 5},\n    {\"seat_number\": \"A3\", \"row\": \"A\", \"col\": 3, \"is_booked\": false, \"booking_count_historical\": 1},\n    {\"seat_number\": \"B1\", \"row\": \"B\", \"col\": 1, \"is_booked\": false, \"booking_count_historical\": 2},\n    {\"seat_number\": \"B2\", \"row\": \"B\", \"col\": 2, \"is_booked\": false, \"booking_count_historical\": 4},\n    {\"seat_number\": \"B3\", \"row\": \"B\", \"col\": 3, \"is_booked\": false, \"booking_count_historical\": 0}\n  ],\n  \"telemetry\": {\n    \"temperature\": 27.5,\n    \"humidity\": 60,\n    \"decibel_level\": 45,\n    \"ml_classification_status\": \"nyaman\",\n    \"predicted_next_busy_hour\": 10\n  }\n}"
+              "raw": "{\n  \"room_id\": 1,\n  \"room_name\": \"Ruang Lab IoT\",\n  \"booking_date\": \"2026-07-05\",\n  \"start_time\": \"09:00\",\n  \"end_time\": \"11:00\",\n  \"requested_seat_count\": 2,\n  \"seats\": [\n    {\"seat_number\": \"A1\", \"row\": \"A\", \"col\": 1, \"is_booked\": false, \"booking_count_historical\": 3},\n    {\"seat_number\": \"A2\", \"row\": \"A\", \"col\": 2, \"is_booked\": true,  \"booking_count_historical\": 5},\n    {\"seat_number\": \"A3\", \"row\": \"A\", \"col\": 3, \"is_booked\": false, \"booking_count_historical\": 1},\n    {\"seat_number\": \"B1\", \"row\": \"B\", \"col\": 1, \"is_booked\": false, \"booking_count_historical\": 2},\n    {\"seat_number\": \"B2\", \"row\": \"B\", \"col\": 2, \"is_booked\": false, \"booking_count_historical\": 4},\n    {\"seat_number\": \"B3\", \"row\": \"B\", \"col\": 3, \"is_booked\": false, \"booking_count_historical\": 0}\n  ],\n  \"telemetry\": {\n    \"temperature\": 27.5,\n    \"humidity\": 60,\n    \"decibel_level\": 45,\n    \"ml_classification_status\": \"nyaman\",\n    \"predicted_next_busy_hour\": 10\n  }\n}"
             },
-            "url": { "raw": "{{ML_URL}}/api/v1/recommend-seats", "host": ["{{ML_URL}}"], "path": ["api", "v1", "recommend-seats"] }
+            "url": {
+              "raw": "{{ML_URL}}/api/v1/recommend-seats",
+              "host": ["{{ML_URL}}"],
+              "path": ["api", "v1", "recommend-seats"]
+            }
           }
         }
       ]
