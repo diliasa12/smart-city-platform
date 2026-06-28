@@ -67,8 +67,8 @@ spec:
     spec:
       containers:
         - name: python-ml-worker
-          image: smartcity-ml:latest
-          imagePullPolicy: Never
+          image: diliasa/python-ml:v1.0
+          imagePullPolicy: IfNotPresent
           command: ["sh", "-c", "while true; do sleep 3600; done"]
           env:
             - name: RABBITMQ_HOST
