@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: php-service
-          image: smartcity-php-service:latest
+          image: diliasa/php-service:v1.0
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 0
